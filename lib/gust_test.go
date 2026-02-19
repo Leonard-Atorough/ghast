@@ -1,4 +1,4 @@
-package gust
+package ghast
 
 import (
 	"bytes"

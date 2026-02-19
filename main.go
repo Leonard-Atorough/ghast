@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	gust "gust/lib"
+	ghast "ghast/lib"
 )
 
 func main() {
@@ -13,28 +13,28 @@ func main() {
 	flag.Parse()
 
 	// Create the router and register routes
-	router := gust.NewRouter()
+	router := ghast.NewRouter()
 
 	// Apply global middleware
-	router.Use(gust.LoggingMiddleware)
-	router.Use(gust.RecoveryMiddleware)
+	router.Use(ghast.LoggingMiddleware)
+	router.Use(ghast.RecoveryMiddleware)
 
 	// Register example routes
-	router.Get("/", gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
-		w.JSON(200, map[string]string{"message": "Welcome to Gust!"})
+	router.Get("/", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+		w.JSON(200, map[string]string{"message": "Welcome to Ghast!"})
 	}))
 
-	router.Get("/hello", gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
+	router.Get("/hello", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 		w.Status(200).SetHeader("Content-Type", "text/plain")
 		w.SendString("Hello, World!")
 	}))
 
-	router.Post("/echo", gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
+	router.Post("/echo", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 		w.JSON(200, map[string]string{"received": r.Body})
 	}))
 
 	// Create server and start listening
-	server := gust.NewServer(router)
+	server := ghast.NewServer(router)
 	if err := server.Listen(":" + *port); err != nil {
 		log.Fatal(err)
 	}

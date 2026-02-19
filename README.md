@@ -1,15 +1,15 @@
-# 🌪️ Gust
+# 🌪️ Ghast
 
 An Express.js-inspired HTTP framework for Go. Built from first principles to learn networking, concurrency, and elegant API design.
 
-## Why Gust?
+## Why Ghast?
 
-**Gust** bridges two worlds:
+**Ghast** bridges two worlds:
 
 - **For Node.js developers:** Familiar Express-like API for building HTTP services in Go
 - **For learning:** Understand HTTP, TCP, and concurrency by reading clean, documented code
 
-This is an educational framework that prioritizes clarity and approachability. While not production-ready (use [Echo](https://echo.labstack.com/), [Gin](https://gin-gonic.com/), or stdlib for production), Gust is perfect for:
+This is an educational framework that prioritizes clarity and approachability. While not production-ready (use [Echo](https://echo.labstack.com/), [Gin](https://gin-gonic.com/), or stdlib for production), Ghast is perfect for:
 
 - Learning Go networking and concurrency
 - Building small projects or APIs
@@ -21,7 +21,7 @@ This is an educational framework that prioritizes clarity and approachability. W
 ### Installation
 
 ```bash
-go get github.com/YourUsername/gust
+go get github.com/YourUsername/ghast
 ```
 
 ### Hello World
@@ -31,18 +31,18 @@ package main
 
 import (
 	"log"
-	"gust/lib"
+	"ghast/lib"
 )
 
 func main() {
-	router := gust.NewRouter()
+	router := ghast.NewRouter()
 
 	// Simple GET route
-	router.Get("/hello", gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
+	router.Get("/hello", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 		w.JSON(200, map[string]string{"message": "Hello, World!"})
 	}))
 
-    server := gust.NewServer(router)
+    server := ghast.NewServer(router)
 	// Start server (see main.go for full implementation)
 	if err := server.Listen(":8080"); err != nil {
         log.Fatal(err)
@@ -132,7 +132,7 @@ app.Use(customMiddleware)
 ## Architecture
 
 ```
-gust/
+ghast/
 ├── lib/                    # Core framework
 │   ├── router.go          # HTTP routing
 │   ├── handler.go         # Handler interface
@@ -161,7 +161,7 @@ gust/
 ### Basic Routing & JSON APIs
 
 ```go
-import "gust/lib"
+import "ghast/lib"
 
 type User struct {
     ID    int    `json:"id"`
@@ -230,7 +230,7 @@ router.UsePath("/api", authMiddleware)
 
 ## Testing
 
-Basic tests are included in `lib/gust_test.go`:
+Basic tests are included in `lib/ghast_test.go`:
 
 ```bash
 go test ./lib/...
@@ -282,7 +282,7 @@ If you want to understand how this works:
 2. Read [lib/router.go](lib/router.go) - See how routing works
 3. Check [lib/middleware.go](lib/middleware.go) - Understand middleware chaining
 4. Look at [main.go](main.go) - See the TCP server implementation
-5. Study [lib/gust_test.go](lib/gust_test.go) - Test examples showing all features
+5. Study [lib/ghast_test.go](lib/ghast_test.go) - Test examples showing all features
 
 ## Helpful Go Packages
 

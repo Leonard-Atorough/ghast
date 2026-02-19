@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	gust "gust/lib"
+	ghast "ghast/lib"
 )
 
 // HelloHandler responds with a simple "Hello, World!" message.
 type HelloHandler struct{}
 
-func (h *HelloHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *HelloHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	rw.Status(200).SetHeader("Content-Type", "text/plain")
 	rw.SendString("Hello, World!")
 }
@@ -18,7 +18,7 @@ func (h *HelloHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
 // JSONHandler responds with JSON data.
 type JSONHandler struct{}
 
-func (h *JSONHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *JSONHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	data := map[string]interface{}{
 		"message": "This is JSON",
 		"status":  "success",
@@ -30,7 +30,7 @@ func (h *JSONHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
 // EchoHandler echoes back the request body.
 type EchoHandler struct{}
 
-func (h *EchoHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *EchoHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	if req.Body == "" {
 		rw.JSON(400, map[string]string{"error": "no body provided"})
 		return
@@ -41,7 +41,7 @@ func (h *EchoHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
 // QueryParamHandler demonstrates reading query parameters.
 type QueryParamHandler struct{}
 
-func (h *QueryParamHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *QueryParamHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	name := req.Query("name")
 	if name == "" {
 		name = "Guest"
@@ -60,7 +60,7 @@ type User struct {
 // UserHandler demonstrates a typical REST API handler for retrieving a user.
 type UserHandler struct{}
 
-func (h *UserHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *UserHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	// Simulated database - in real code, this would be actual data access
 	user := User{
 		ID:    1,
@@ -73,11 +73,11 @@ func (h *UserHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
 // CreateUserHandler demonstrates parsing JSON and creating a resource.
 type CreateUserHandler struct{}
 
-func (h *CreateUserHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *CreateUserHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	var user User
 	err := json.Unmarshal([]byte(req.Body), &user)
 	if err != nil {
-		gust.Error(rw, 400, "Invalid JSON")
+		ghast.Error(rw, 400, "Invalid JSON")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *CreateUserHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request)
 // NotFoundHandler responds with a 404 error.
 type NotFoundHandler struct{}
 
-func (h *NotFoundHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *NotFoundHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	rw.Status(404)
 	rw.SendString("404 Not Found")
 }
@@ -98,7 +98,7 @@ func (h *NotFoundHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
 // HealthCheckHandler is a simple health check endpoint.
 type HealthCheckHandler struct{}
 
-func (h *HealthCheckHandler) ServeHTTP(rw gust.ResponseWriter, req *gust.Request) {
+func (h *HealthCheckHandler) ServeHTTP(rw ghast.ResponseWriter, req *ghast.Request) {
 	rw.JSON(200, map[string]string{
 		"status": "healthy",
 	})

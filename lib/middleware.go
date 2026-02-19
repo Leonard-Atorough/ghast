@@ -1,4 +1,4 @@
-package gust
+package ghast
 
 import (
 	"log"
@@ -10,8 +10,8 @@ import (
 //
 // Example:
 //
-//	loggingMiddleware := func(next gust.Handler) gust.Handler {
-//	    return gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
+//	loggingMiddleware := func(next ghast.Handler) ghast.Handler {
+//	    return ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 //	        log.Printf("Request: %s %s", r.Method, r.Path)
 //	        next.ServeHTTP(w, r)
 //	    })

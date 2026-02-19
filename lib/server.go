@@ -1,4 +1,4 @@
-package gust
+package ghast
 
 import (
 	"bufio"
@@ -54,7 +54,7 @@ func (s *Server) Listen(addr string) error {
 
 	s.listener = ln // Store listener for graceful shutdown support
 
-	log.Printf("🌪️  Gust server listening on %s", addr)
+	log.Printf("🌪️  Ghast server listening on %s", addr)
 
 	for {
 		conn, err := ln.Accept()

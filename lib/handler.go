@@ -1,4 +1,4 @@
-package gust
+package ghast
 
 // Handler interface defines how HTTP requests are processed.
 // Implementations should read from the Request and write to the ResponseWriter.
@@ -14,7 +14,7 @@ type Handler interface {
 // It implements the Handler interface by defining a ServeHTTP method that calls the underlying function.
 //
 // Example:
-//   handler := gust.HandlerFunc(func(w gust.ResponseWriter, r *gust.Request) {
+//   handler := ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 //       w.JSON(200, map[string]string{"message": "Hello"})
 //   })
 type HandlerFunc func(ResponseWriter, *Request)

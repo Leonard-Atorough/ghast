@@ -1,4 +1,4 @@
-package gust
+package ghast
 
 // HTTPError represents an HTTP error with status code and message.
 type HTTPError struct {
