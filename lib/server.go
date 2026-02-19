@@ -11,7 +11,7 @@ import (
 // Server represents an HTTP server that uses a Router to handle requests.
 // It manages TCP listening, connection handling, and request parsing.
 type Server struct {
-	router   Router // TODO: Add support for multiple routers. We can do this by defining a RouterGroup struct that can hold multiple routers and route requests to the appropriate router based on path prefixes or other criteria.
+	routers  map[string]Router // TODO: Add support for multiple routers. We can do this by defining a RouterGroup struct that can hold multiple routers and route requests to the appropriate router based on path prefixes or other criteria.
 	addr     string
 	listener net.Listener // TODO: Add listener for graceful shutdown
 	isDone   bool         // TODO: Add shutdown signal
@@ -35,11 +35,27 @@ type ServerConfig struct {
 	// Placeholder for future configuration
 }
 
+type RouterPath struct {
+	Path   string
+	Router Router
+}
+
 // NewServer creates a new Server with the given Router.
-func NewServer(router Router) *Server {
+func NewServer() *Server {
 	return &Server{
-		router: router,
+		routers: make(map[string]Router),
 	}
+}
+
+func (s *Server) AddRouter(rp RouterPath) *Server {
+	if _, exists := s.routers[rp.Path]; exists {
+		log.Printf("Warning: Router for path %s already exists. Overwriting.", rp.Path)
+	}
+	if rp.Path == "" {
+		rp.Path = "/" // Default to root if empty
+	}
+	s.routers[rp.Path] = rp.Router
+	return s
 }
 
 // Listen starts the HTTP server on the given address (e.g., ":8080").
@@ -128,7 +144,22 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 		// Process the request through the router
 		rw := NewResponseWriter(conn)
-		s.router.ServeHTTP(rw, req)
+
+		// Determine the appropriate router to use based on request path. Since the path will contain the full path, we can check for matching prefixes in the router map.
+		var matchedRouter Router = nil
+		for prefix, router := range s.routers {
+			if strings.HasPrefix(req.Path, prefix) {
+				matchedRouter = router
+				break
+			}
+		}
+
+		if matchedRouter != nil {
+			matchedRouter.ServeHTTP(rw, req)
+		} else {
+			rw.Status(404)
+			rw.Send([]byte("404 Not Found"))
+		}
 
 		// Check for connection keep-alive
 		if connHeader := req.Headers["Connection"]; !strings.EqualFold(connHeader, "keep-alive") {

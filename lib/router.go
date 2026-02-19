@@ -168,7 +168,6 @@ func (r *router) ServeHTTP(w ResponseWriter, req *Request) {
 		}
 	}
 
-	// No matching route found.
 	w.Status(404)
 	w.Send([]byte("404 Not Found"))
 }
@@ -190,6 +189,7 @@ func (r *router) UsePath(path string, middleware Middleware) Router {
 
 // Listen starts an HTTP server on the given address. This is a simplified implementation
 // for demonstration purposes. See the main.go for the full TCP server setup.
+// Deprecated: Server logic has been moved to server.go. This method is a placeholder and should not be used directly.
 func (r *router) Listen(addr string) error {
 	// Placeholder - actual implementation depends on embedding the server logic
 	// For now, this is handled in main.go
