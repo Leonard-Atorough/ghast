@@ -45,7 +45,7 @@ func main() {
 	}))
 
 	// Create server and start listening
-	server := ghast.NewServer().AddRouter(ghast.RouterPath{Path: "/", Router: router})
+	server := ghast.NewServer().AddRouter(ghast.RouterPath{Router: router})
 	if err := server.Listen(":" + *port); err != nil {
 		log.Fatal(err)
 	}
