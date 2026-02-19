@@ -287,8 +287,9 @@ If you want to understand how this works:
 1. Start with [lib/handler.go](lib/handler.go) - Learn the Handler interface
 2. Read [lib/router.go](lib/router.go) - See how routing works
 3. Check [lib/middleware.go](lib/middleware.go) - Understand middleware chaining
-4. Look at [main.go](main.go) - See the TCP server implementation
-5. Study [lib/ghast_test.go](lib/ghast_test.go) - Test examples showing all features
+4. Look at [lib/request.go](lib/request.go) and [lib/response.go](lib/response.go) - See request parsing and response writing
+5. Study [lib/server.go](lib/server.go) - Learn about the server implementation and how it handles TCP connections and HTTP requests
+6. Study [lib/ghast_test.go](lib/ghast_test.go) - Test examples showing all features
 
 ## Helpful Go Packages
 
