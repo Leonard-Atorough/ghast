@@ -264,7 +264,7 @@ Tests cover:
 
 ### Phase 2: Dynamic Routing (Planned)
 
-- [ ] Path parameters (`:id`, `:slug`)
+- [x] Path parameters (`:id`, `:slug`)
 - [ ] Regex route matching
 - [ ] Route groups with shared middleware
 - [ ] 404 and error handling improvements

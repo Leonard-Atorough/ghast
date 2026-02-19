@@ -29,6 +29,17 @@ func main() {
 		w.SendString("Hello, World!")
 	}))
 
+	router.Get("/users/:id", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+		userID := r.Params["id"]
+		w.JSON(200, map[string]string{"userId": userID})
+	}))
+
+	router.Get("/admin/:id/stat/:statId", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+		id := r.Params["id"]
+		statId := r.Params["statId"]
+		w.JSON(200, map[string]string{"adminId": id, "statId": statId})
+	}))
+
 	router.Post("/echo", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 		w.JSON(200, map[string]string{"received": r.Body})
 	}))

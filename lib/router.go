@@ -1,6 +1,9 @@
 package ghast
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 // Router interface defines the contract for HTTP routing and middleware management.
 type Router interface {
@@ -39,52 +42,55 @@ func (r *router) Shutdown() error {
 }
 
 type router struct {
-	routes          map[string]map[string]Handler // This is a nested map where the first key is the HTTP method (e.g., "GET", "POST") and the second key is the path (e.g., "/hello"). The value is the Handler that should be invoked for that method and path.
-	routeParams     map[string][]routeParam       // This map stores the route parameters for each registered path. The key is the path, and the value is a slice of routeParam structs that contain information about the parameters defined in that path (e.g., ":id" in "/users/:id").
-	middlewares     []Middleware                  // This slice can be used to store middleware functions that should be applied to all handlers registered with the router. When a request is processed, the router can apply these middleware functions in order before invoking the final handler for the matched route.
-	pathMiddlewares map[string][]Middleware       // This map stores middleware functions that should be applied to specific paths. The key is the path, and the value is a slice of middleware functions to be applied to that path.
+	routes          map[string]map[string]Handler // Nested map: first key is HTTP method (e.g., "GET", "POST"), second key is the path. Value is the Handler.
+	middlewares     []Middleware                  // Middleware applied to all routes.
+	pathMiddlewares map[string][]Middleware       // Middleware applied to specific paths.
+	regexRoutes     map[string]*pathRegex         // Regex patterns and params for routes with dynamic segments. Key is the path template.
 }
 
-type routeParam struct {
-	name     string
-	value    string
-	position int
+// pathRegex stores compiled regex and parameter names for dynamic routes.
+type pathRegex struct {
+	regex  *regexp.Regexp // Compiled regex pattern for efficient matching.
+	params []string       // Parameter names in order they appear in regex captures.
 }
 
 // NewRouter creates a new Router instance with empty routes and middleware.
 func NewRouter() Router {
 	return &router{
 		routes:          make(map[string]map[string]Handler),
-		routeParams:     make(map[string][]routeParam), // Initialize the routeParams map to an empty map to avoid nil pointer issues when adding route parameters later.
-		middlewares:     []Middleware{},                // Initialize the middlewares slice to an empty slice to avoid nil pointer issues when adding middleware later.
-		pathMiddlewares: make(map[string][]Middleware), // Initialize the pathMiddlewares map to an empty map to avoid nil pointer issues when adding path-specific middleware later.
+		regexRoutes:     make(map[string]*pathRegex),
+		middlewares:     []Middleware{},
+		pathMiddlewares: make(map[string][]Middleware),
 	}
 }
 
 // Handle registers a handler for a specific HTTP method and path.
 func (r *router) Handle(method string, path string, handler Handler) {
-
-	// Extract route parameters from the path and store them in the routeParams map for later use when matching incoming requests to registered routes.
-	// For example, if the path is "/users/:id", we would extract "id" as a route parameter and store it in the routeParams map with the key "/users/:id".
-	// This allows us to later match incoming requests to this route and extract the value of the "id" parameter from the request path.
+	// Extract route parameters and compile regex pattern for dynamic routes.
 	params := extractRouteParams(path)
-	r.routeParams[path] = params
+	pattern := pathToRegex(path)
 
-	middlwareCollection := []Middleware{}
-
-	middlwareCollection = append(middlwareCollection, r.middlewares...)
-	if pathMiddlewares, ok := r.pathMiddlewares[path]; ok {
-		for _, middleware := range pathMiddlewares {
-			middlwareCollection = append(middlwareCollection, middleware)
-		}
+	// Compile the regex pattern once during registration for efficient matching.
+	compiledRegex := regexp.MustCompile(pattern)
+	r.regexRoutes[path] = &pathRegex{
+		regex:  compiledRegex,
+		params: params,
 	}
-	// Build the final handler with all middleware applied before registering it in the routes map.
-	handler = ChainMiddleware(handler, middlwareCollection)
 
+	// Collect middleware: global middleware + path-specific middleware.
+	middlewareCollection := []Middleware{}
+	middlewareCollection = append(middlewareCollection, r.middlewares...)
+	if pathMiddlewares, ok := r.pathMiddlewares[path]; ok {
+		middlewareCollection = append(middlewareCollection, pathMiddlewares...)
+	}
+
+	// Apply middleware to the handler.
+	handler = ChainMiddleware(handler, middlewareCollection)
+
+	// Register the handler for the specified method and path.
 	if r.routes[method] == nil {
 		r.routes[method] = make(map[string]Handler)
 	}
-
 	r.routes[method][path] = handler
 }
 
@@ -126,20 +132,35 @@ func (r *router) Options(path string, handler Handler) Router {
 
 // ServeHTTP processes an incoming HTTP request by matching it to the appropriate handler.
 func (r *router) ServeHTTP(w ResponseWriter, req *Request) {
-
-	// TODO: Include logic to handle route parameters when matching incoming requests to registered routes.
-	// This will likely involve iterating through the registered routes for the request's method and checking
-	// if the request path matches any of the registered paths, including those with route parameters (e.g., "/users/:id").
-	// If a match is found, we would need to extract the values of the route parameters from the request path and populate the Params
-	// field of the Request struct before invoking the handler.
-
+	// First, try exact path match.
 	if r.routes[req.Method] != nil {
 		if handler, ok := r.routes[req.Method][req.Path]; ok {
 			handler.ServeHTTP(w, req)
 			return
 		}
 	}
-	// If no handler is found, respond with 404 Not Found
+
+	// Try matching against regex routes (paths with dynamic segments).
+	for pathTemplate, route := range r.regexRoutes {
+		matches := route.regex.FindStringSubmatch(req.Path)
+		if len(matches) > 0 {
+			// Extract captured parameters from regex matches.
+			req.Params = make(map[string]string)
+			for i, paramName := range route.params {
+				if i+1 < len(matches) {
+					req.Params[paramName] = matches[i+1]
+				}
+			}
+
+			// Look up and invoke the handler for this route.
+			if handler, ok := r.routes[req.Method][pathTemplate]; ok {
+				handler.ServeHTTP(w, req)
+				return
+			}
+		}
+	}
+
+	// No matching route found.
 	w.Status(404)
 	w.Send([]byte("404 Not Found"))
 }
@@ -167,19 +188,32 @@ func (r *router) Listen(addr string) error {
 	return nil
 }
 
-// extractRouteParams is a helper function to extract route parameters from a path.
-// For example, if the path is "/users/:id", it would extract "id" as a parameter.
-func extractRouteParams(path string) []routeParam {
-	// returns a routeParam struct array
-
-	params := []routeParam{}
+// extractRouteParams extracts parameter names from a path template.
+// Example: "/users/:id/posts/:postId" returns ["id", "postId"].
+func extractRouteParams(path string) []string {
+	var params []string
 	parts := strings.Split(path, "/")
-	for i, part := range parts {
+	for _, part := range parts {
 		if strings.HasPrefix(part, ":") {
 			paramName := strings.TrimPrefix(part, ":")
-			params = append(params, routeParam{name: paramName, position: i})
-
+			params = append(params, paramName)
 		}
 	}
 	return params
+}
+
+// pathToRegex converts a path template to a regex pattern.
+// Example: "/users/:id/posts/:postId" returns "^/users/([^/]+)/posts/([^/]+)$".
+func pathToRegex(path string) string {
+	parts := strings.Split(path, "/")
+	var regexParts []string
+	for _, part := range parts {
+		if strings.HasPrefix(part, ":") {
+			// Replace :paramName with a capture group for non-slash characters.
+			regexParts = append(regexParts, "([^/]+)")
+		} else {
+			regexParts = append(regexParts, part)
+		}
+	}
+	return "^" + strings.Join(regexParts, "/") + "$"
 }
