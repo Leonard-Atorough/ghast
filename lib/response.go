@@ -131,31 +131,3 @@ func (rw *responseWriter) writeStatusAndHeaders() {
 	buf.WriteString("\r\n")
 	rw.conn.Write([]byte(buf.String()))
 }
-
-// httpStatusText returns the standard HTTP status text for a given status code.
-func httpStatusText(statusCode int) string {
-	switch statusCode {
-	case 200:
-		return "OK"
-	case 201:
-		return "Created"
-	case 204:
-		return "No Content"
-	case 400:
-		return "Bad Request"
-	case 401:
-		return "Unauthorized"
-	case 403:
-		return "Forbidden"
-	case 404:
-		return "Not Found"
-	case 500:
-		return "Internal Server Error"
-	case 502:
-		return "Bad Gateway"
-	case 503:
-		return "Service Unavailable"
-	default:
-		return "Unknown Status"
-	}
-}
