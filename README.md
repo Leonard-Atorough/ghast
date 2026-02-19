@@ -1,4 +1,4 @@
-# 🌪️ Ghast
+# Ghast
 
 An Express.js-inspired HTTP framework for Go. Built from first principles to learn networking, concurrency, and elegant API design.
 
@@ -15,6 +15,12 @@ This is an educational framework that prioritizes clarity and approachability. W
 - Building small projects or APIs
 - Understanding HTTP server design patterns
 - **Portfolio projects** showing thoughtful architecture
+
+### What does ghast mean?
+
+A "ghast" is a ghostly creature from folklore, often depicted as a haunting presence. In the context of this project, it symbolizes the "ghost" of Express.js in the Go ecosystem—a familiar API that allows developers to build web servers with ease while learning the underlying mechanics. Just as a ghast can be both eerie and fascinating, this framework aims to be an intriguing blend of simplicity and depth for those looking to explore Go's capabilities in web development.
+
+`It's also a portmanteau of "Go", "HTTP", and "Fast" - emphasizing the goal of creating a fast, efficient HTTP framework in Go.`
 
 ## Quick Start
 
@@ -310,6 +316,7 @@ This is primarily an educational project. Feel free to:
 ## License
 
 MIT - Feel free to learn from, modify, and adapt this code.
+See [LICENSE.md](LICENSE.md) for details.
 
 ---
 
