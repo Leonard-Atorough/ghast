@@ -142,9 +142,9 @@ func parseRequestLine(lines []string) (method, path, version string, err error) 
 	path = parts[1]
 	version = parts[2]
 
-	validMethods := []string{GET, POST, PUT, DELETE, HEAD, OPTIONS}
+	validMethods := []string{GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH}
 
-	isValidMethod := slices.Contains(validMethods, method)
+	isValidMethod := slices.Contains(validMethods, strings.ToUpper(method))
 
 	if !isValidMethod {
 		return "", "", "", fmt.Errorf("invalid request line: unknown method %s", method)
