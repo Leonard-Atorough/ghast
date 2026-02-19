@@ -64,7 +64,7 @@ func NewRouter() Router {
 	}
 }
 
-// Handle registers a handler for a specific HTTP method and path.
+// Handle registers a handler for a specific HTTP method and path. It also compiles regex patterns for dynamic routes and applies middleware.
 func (r *router) Handle(method string, path string, handler Handler) {
 	// Extract route parameters and compile regex pattern for dynamic routes.
 	params := extractRouteParams(path)
@@ -95,36 +95,44 @@ func (r *router) Handle(method string, path string, handler Handler) {
 }
 
 // Express-like convenience methods for HTTP verbs
+
+// Routes HTTP GET requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Get(path string, handler Handler) Router {
 	r.Handle("GET", path, handler)
 	return r
 }
 
+// Routes HTTP POST requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Post(path string, handler Handler) Router {
 	r.Handle("POST", path, handler)
 	return r
 }
 
+// Routes HTTP PUT requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Put(path string, handler Handler) Router {
 	r.Handle("PUT", path, handler)
 	return r
 }
 
+// Routes HTTP DELETE requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Delete(path string, handler Handler) Router {
 	r.Handle("DELETE", path, handler)
 	return r
 }
 
+// Routes HTTP PATCH requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Patch(path string, handler Handler) Router {
 	r.Handle("PATCH", path, handler)
 	return r
 }
 
+// Routes HTTP HEAD requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Head(path string, handler Handler) Router {
 	r.Handle("HEAD", path, handler)
 	return r
 }
 
+// Routes HTTP OPTIONS requests to the specified path with the given handler. Returns the router for chaining.
 func (r *router) Options(path string, handler Handler) Router {
 	r.Handle("OPTIONS", path, handler)
 	return r
