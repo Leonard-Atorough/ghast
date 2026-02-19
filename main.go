@@ -44,8 +44,15 @@ func main() {
 		w.JSON(200, map[string]string{"received": r.Body})
 	}))
 
+	AppRouter := ghast.NewRouter()
+	AppRouter.Get("/details", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+		w.JSON(200, map[string]string{"message": "Hello from App Router!"})
+	}))
+
 	// Create server and start listening
-	server := ghast.NewServer().AddRouter(ghast.RouterPath{Router: router})
+	server := ghast.NewServer().
+		AddRouter(ghast.RouterPath{Router: router}).
+		AddRouter(ghast.RouterPath{Path: "/app", Router: AppRouter})
 	if err := server.Listen(":" + *port); err != nil {
 		log.Fatal(err)
 	}

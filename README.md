@@ -265,7 +265,8 @@ Tests cover:
 ### Phase 2: Dynamic Routing (Planned)
 
 - [x] Path parameters (`:id`, `:slug`)
-- [ ] Regex route matching
+- [x] Regex route matching
+- [x] Multiple routers on server (e.g. API router, admin router)
 - [ ] Route groups with shared middleware
 - [ ] 404 and error handling improvements
 - [ ] Graceful shutdown support

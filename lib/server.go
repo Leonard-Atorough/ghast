@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"strings"
 )
 
@@ -145,20 +146,41 @@ func (s *Server) handleConnection(conn net.Conn) {
 		// Process the request through the router
 		rw := NewResponseWriter(conn)
 
-		// Determine the appropriate router to use based on request path. Since the path will contain the full path, we can check for matching prefixes in the router map.
+		// Determine the appropriate router to use based on request path.
+		// Sort prefixes by length (longest first) to ensure more specific paths are matched first.
+		var prefixes []string
+		for prefix := range s.routers {
+			prefixes = append(prefixes, prefix)
+		}
+		sort.Slice(prefixes, func(i, j int) bool {
+			return len(prefixes[i]) > len(prefixes[j])
+		})
+
 		var matchedRouter Router = nil
-		for prefix, router := range s.routers {
-			if strings.HasPrefix(req.Path, prefix) {
-				matchedRouter = router
+		var matchedPrefix string
+		for _, prefix := range prefixes {
+
+			if strings.HasPrefix(req.Path, prefix) && (prefix == "/" || len(req.Path) == len(prefix) || req.Path[len(prefix)] == '/') {
+				matchedRouter = s.routers[prefix]
+				matchedPrefix = prefix
 				break
 			}
 		}
 
 		if matchedRouter != nil {
+			// Strip the prefix from the path before passing to the router
+			originalPath := req.Path
+			if matchedPrefix != "/" {
+				req.Path = strings.TrimPrefix(req.Path, matchedPrefix)
+				if req.Path == "" {
+					req.Path = "/"
+				}
+			}
 			matchedRouter.ServeHTTP(rw, req)
+			req.Path = originalPath // Restore original path for logging or debugging
 		} else {
 			rw.Status(404)
-			rw.Send([]byte("404 Not Found"))
+			rw.Send([]byte("404 Not Found - No matching router"))
 		}
 
 		// Check for connection keep-alive
