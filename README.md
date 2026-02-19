@@ -261,6 +261,10 @@ Tests cover:
 - [ ] Path parameters (`:id`, `:slug`)
 - [ ] Regex route matching
 - [ ] Route groups with shared middleware
+- [ ] 404 and error handling improvements
+- [ ] Graceful shutdown support
+- [ ] Server configuration options (timeouts, max connections)
+- [ ] Server-level middleware (global middleware that applies to all routes)
 
 ### Phase 3: Advanced Features (Optional)
 

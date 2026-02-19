@@ -11,7 +11,7 @@ import (
 // Server represents an HTTP server that uses a Router to handle requests.
 // It manages TCP listening, connection handling, and request parsing.
 type Server struct {
-	router   Router
+	router   Router // TODO: Add support for multiple routers. We can do this by defining a RouterGroup struct that can hold multiple routers and route requests to the appropriate router based on path prefixes or other criteria.
 	addr     string
 	listener net.Listener // TODO: Add listener for graceful shutdown
 	isDone   bool         // TODO: Add shutdown signal
@@ -21,6 +21,7 @@ type Server struct {
 	// - done chan struct{} (shutdown signal)
 	// - wg sync.WaitGroup (wait for goroutines)
 	// - config ServerConfig (timeouts, max connections, etc.)
+	// - Server level middlewares []Middleware (for global middleware)
 }
 
 // ServerConfig holds configuration options for the server.
