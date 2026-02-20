@@ -152,6 +152,8 @@ func (s *Server) handleConnection(conn net.Conn) {
 			}
 		}
 
+		req.ClientIP = conn.RemoteAddr().String() // Populate client IP for potential logging or middleware use
+
 		// Process the request through the router
 		rw := NewResponseWriter(conn)
 
@@ -189,6 +191,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			routerWithMiddleware := ChainMiddleware(matchedRouter, s.middlewares)
 
 			routerWithMiddleware.ServeHTTP(rw, req)
+
 			req.Path = originalPath // Restore original path for logging or debugging
 		} else {
 			rw.Status(404)

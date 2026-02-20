@@ -30,6 +30,7 @@ type Request struct {
 	Version string            // HTTP version (e.g., "HTTP/1.1")
 	Params  map[string]string // Route parameters (e.g., from path variables)
 	Queries map[string]string // Query parameters
+	ClientIP string            // Client IP address (to be populated by server)
 }
 
 // Query retrieves a query parameter by key. Returns empty string if not found.
