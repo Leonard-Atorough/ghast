@@ -205,14 +205,13 @@ func SetupRouter() ghast.Router {
 	// Nested parameter routes
 	router.Get("/users/:userId/posts/:postId", &UserPostHandler{})
 
-	// Protected routes with path-specific middleware
-	router.UsePath("/admin/stats", AuthenticationMiddleware)
+	// Protected routes with route-specific middleware
 	router.Get("/admin/stats", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
 		w.JSON(200, map[string]interface{}{
 			"totalUsers": 42,
 			"totalPosts": 156,
 		})
-	}))
+	}), AuthenticationMiddleware)
 
 	return router
 }

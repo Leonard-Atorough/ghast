@@ -118,8 +118,6 @@ router.Get("/hello", func(w ghast.ResponseWriter, r *ghast.Request) {
 
 > Ghast 0.1.0 does not support route groups or nested routes, so all routes are defined at the top level of the router.
 
-> Ghast 0.1.0 doesn't yet support middleware on handlers, but this is planned for a future release. Currently, you can apply middleware at the server level or router level, but not on individual handlers.
-
 ## Example
 
 ```go
@@ -247,15 +245,17 @@ func customMiddleware(next ghast.Handler) ghast.Handler {
 }
 ```
 
-You can then apply this middleware to the server or to a specific router:
+You can then apply this middleware at different levels:
 
 ```go
 // Apply middleware to the server (affects all routers)
 server.Use(customMiddleware)
-// Apply middleware to a specific router
+
+// Apply middleware to a specific router (affects all routes on that router)
 router.Use(customMiddleware)
-// You can also apply route-specific middleware
-router.UsePath("/users/:id", customMiddleware) // This applies the middleware only to routes that match /users/:id
+
+// Apply middleware to a specific route (affects only that route)
+router.Get("/users/:id", handler, customMiddleware) // Pass middleware as optional parameters
 ```
 
 ### A note on the order of middleware execution
@@ -266,10 +266,12 @@ When a request comes in, the server will first match the request path to the app
 // Server-level middleware
 server.Use(loggingMiddleware)
 server.Use(recoveryMiddleware)
+
 // Router-level middleware
 router.Use(authMiddleware)
+
 // Route-specific middleware
-router.UsePath("/users/:id", userMiddleware)
+router.Get("/users/:id", userHandler, userMiddleware)
 
 // When a request comes in for /users/123, the execution order will be:
 // 1. Recovery middleware (server-level)

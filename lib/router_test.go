@@ -286,8 +286,7 @@ func TestRouterPathSpecificMiddleware(t *testing.T) {
 	handler1 := HandlerFunc(func(w ResponseWriter, r *Request) {})
 	handler2 := HandlerFunc(func(w ResponseWriter, r *Request) {})
 
-	router.UsePath("/users", middleware("/users"))
-	router.Get("/users", handler1)
+	router.Get("/users", handler1, middleware("/users"))
 	router.Get("/posts", handler2)
 
 	// Request to /users (should trigger middleware)
@@ -351,7 +350,7 @@ func TestRouterChainingMethods(t *testing.T) {
 	result := router.Get("/users", handler).
 		Post("/users", handler).
 		Use(middleware).
-		UsePath("/posts", middleware)
+		Get("/posts", handler, middleware)
 
 	if result == nil {
 		t.Error("method chaining failed")

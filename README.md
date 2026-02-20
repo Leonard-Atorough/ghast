@@ -112,12 +112,15 @@ contentType := r.ContentType()
 ### Middleware Support
 
 ```go
-// Global middleware - applies to all routes
-app.Use(LoggingMiddleware)
-app.Use(RecoveryMiddleware)
+// Server-level middleware - applies to all routes
+server.Use(LoggingMiddleware)
+server.Use(RecoveryMiddleware)
 
-// Path-specific middleware
-app.UsePath("/api", authMiddleware)
+// Router-level middleware - applies to all routes on that router
+router.Use(authMiddleware)
+
+// Route-specific middleware - applies only to that route
+router.Get("/api/users/:id", userHandler, authMiddleware)
 
 // Custom middleware
 customMiddleware := func(next Handler) Handler {
@@ -132,7 +135,7 @@ customMiddleware := func(next Handler) Handler {
         log.Println("Response sent")
     })
 }
-app.Use(customMiddleware)
+server.Use(customMiddleware)
 ```
 
 ## Architecture
@@ -231,7 +234,7 @@ authMiddleware := func(next lib.Handler) lib.Handler {
 
 router := lib.NewRouter()
 router.Use(loggingMiddleware)
-router.UsePath("/api", authMiddleware)
+router.Post("/api/users", postUserHandler, authMiddleware)
 ```
 
 ## Testing

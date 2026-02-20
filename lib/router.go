@@ -8,16 +8,16 @@ import (
 // Router interface defines the contract for HTTP routing and middleware management.
 type Router interface {
 	// Handle registers a handler for a specific HTTP method and path. The handler will be invoked when a request matches the method and path.
-	Handle(method string, path string, handler Handler)
+	Handle(method string, path string, handler Handler, middlewares ...Middleware)
 
 	// Express-like convenience methods for common HTTP verbs
-	Get(path string, handler Handler) Router
-	Post(path string, handler Handler) Router
-	Put(path string, handler Handler) Router
-	Delete(path string, handler Handler) Router
-	Patch(path string, handler Handler) Router
-	Head(path string, handler Handler) Router
-	Options(path string, handler Handler) Router
+	Get(path string, handler Handler, middlewares ...Middleware) Router
+	Post(path string, handler Handler, middlewares ...Middleware) Router
+	Put(path string, handler Handler, middlewares ...Middleware) Router
+	Delete(path string, handler Handler, middlewares ...Middleware) Router
+	Patch(path string, handler Handler, middlewares ...Middleware) Router
+	Head(path string, handler Handler, middlewares ...Middleware) Router
+	Options(path string, handler Handler, middlewares ...Middleware) Router
 
 	// ServeHTTP processes an incoming HTTP request by matching it to the appropriate handler based on the request's method and path.
 	ServeHTTP(ResponseWriter, *Request)
@@ -25,9 +25,6 @@ type Router interface {
 	// Use adds a middleware function to the router. Middleware functions are applied to all handlers registered with the router, allowing you to add common
 	// functionality (e.g., logging, authentication) across all routes without having to modify each handler individually.
 	Use(middleware Middleware) Router
-
-	// UsePath adds a middleware function to a specific path. Middleware functions added with this method will only be applied to handlers registered for the specified path, allowing you to add functionality that is specific to certain routes without affecting others.
-	UsePath(path string, middleware Middleware) Router
 
 	// Listen starts the HTTP server on the given address (e.g., ":8080")
 	Listen(addr string) error
@@ -42,10 +39,9 @@ func (r *router) Shutdown() error {
 }
 
 type router struct {
-	routes          map[string]map[string]Handler // Nested map: first key is HTTP method (e.g., "GET", "POST"), second key is the path. Value is the Handler.
-	middlewares     []Middleware                  // Middleware applied to all routes.
-	pathMiddlewares map[string][]Middleware       // Middleware applied to specific paths.
-	regexRoutes     map[string]*pathRegex         // Regex patterns and params for routes with dynamic segments. Key is the path template.
+	routes      map[string]map[string]Handler // Nested map: first key is HTTP method (e.g., "GET", "POST"), second key is the path. Value is the Handler.
+	middlewares []Middleware                  // Middleware applied to all routes.
+	regexRoutes map[string]*pathRegex         // Regex patterns and params for routes with dynamic segments. Key is the path template.
 }
 
 // pathRegex stores compiled regex and parameter names for dynamic routes.
@@ -57,15 +53,14 @@ type pathRegex struct {
 // NewRouter creates a new Router instance with empty routes and middleware.
 func NewRouter() Router {
 	return &router{
-		routes:          make(map[string]map[string]Handler),
-		regexRoutes:     make(map[string]*pathRegex),
-		middlewares:     []Middleware{},
-		pathMiddlewares: make(map[string][]Middleware),
+		routes:      make(map[string]map[string]Handler),
+		regexRoutes: make(map[string]*pathRegex),
+		middlewares: []Middleware{},
 	}
 }
 
 // Handle registers a handler for a specific HTTP method and path. It also compiles regex patterns for dynamic routes and applies middleware.
-func (r *router) Handle(method string, path string, handler Handler) {
+func (r *router) Handle(method string, path string, handler Handler, middlewares ...Middleware) {
 	// Extract route parameters and compile regex pattern for dynamic routes.
 	params := extractRouteParams(path)
 	pattern := pathToRegex(path)
@@ -77,12 +72,10 @@ func (r *router) Handle(method string, path string, handler Handler) {
 		params: params,
 	}
 
-	// Collect middleware: global middleware + path-specific middleware.
+	// Collect middleware: global middleware + route-specific middleware.
 	middlewareCollection := []Middleware{}
 	middlewareCollection = append(middlewareCollection, r.middlewares...)
-	if pathMiddlewares, ok := r.pathMiddlewares[path]; ok {
-		middlewareCollection = append(middlewareCollection, pathMiddlewares...)
-	}
+	middlewareCollection = append(middlewareCollection, middlewares...)
 
 	// Apply middleware to the handler.
 	handler = ChainMiddleware(handler, middlewareCollection)
@@ -97,44 +90,44 @@ func (r *router) Handle(method string, path string, handler Handler) {
 // Express-like convenience methods for HTTP verbs
 
 // Routes HTTP GET requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Get(path string, handler Handler) Router {
-	r.Handle("GET", path, handler)
+func (r *router) Get(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("GET", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP POST requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Post(path string, handler Handler) Router {
-	r.Handle("POST", path, handler)
+func (r *router) Post(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("POST", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP PUT requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Put(path string, handler Handler) Router {
-	r.Handle("PUT", path, handler)
+func (r *router) Put(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("PUT", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP DELETE requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Delete(path string, handler Handler) Router {
-	r.Handle("DELETE", path, handler)
+func (r *router) Delete(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("DELETE", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP PATCH requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Patch(path string, handler Handler) Router {
-	r.Handle("PATCH", path, handler)
+func (r *router) Patch(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("PATCH", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP HEAD requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Head(path string, handler Handler) Router {
-	r.Handle("HEAD", path, handler)
+func (r *router) Head(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("HEAD", path, handler, middlewares...)
 	return r
 }
 
 // Routes HTTP OPTIONS requests to the specified path with the given handler. Returns the router for chaining.
-func (r *router) Options(path string, handler Handler) Router {
-	r.Handle("OPTIONS", path, handler)
+func (r *router) Options(path string, handler Handler, middlewares ...Middleware) Router {
+	r.Handle("OPTIONS", path, handler, middlewares...)
 	return r
 }
 
@@ -175,18 +168,6 @@ func (r *router) ServeHTTP(w ResponseWriter, req *Request) {
 // Use adds a middleware function to the router that applies to all routes.
 func (r *router) Use(middleware Middleware) Router {
 	r.middlewares = append(r.middlewares, middleware)
-	return r
-}
-
-// UsePath adds a middleware function to a specific path.
-// A better way to do this is to support a middleware stack for each route on route registration:
-// func (r *router) Handle(method string, path string, handler Handler, middlewares ...Middleware) {
-// This takes advantage of the ... (variadic) syntax to allow for an optional list of middleware to be passed in at route registration time. This way, you can specify middleware that applies only to that route without needing a separate UsePath method. The Handle method would then chain the provided middleware with any global middleware before registering the final handler.
-func (r *router) UsePath(path string, middleware Middleware) Router {
-	if r.pathMiddlewares == nil {
-		r.pathMiddlewares = make(map[string][]Middleware)
-	}
-	r.pathMiddlewares[path] = append(r.pathMiddlewares[path], middleware)
 	return r
 }
 
