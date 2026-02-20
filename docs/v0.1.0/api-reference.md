@@ -1,6 +1,6 @@
 ---
-title: "Routing"
-description: "Learn how to define routes and handlers in Ghast, including support for multiple routers and route parameters."
+title: "API Reference"
+description: "Comprehensive reference for Ghast's public API, including Server, Router, Handler, Middleware, Request, and Response types and methods. This is the go-to resource for understanding how to use Ghast's core functionality to build web applications."
 authors: ["Leonardo"]
 dateCreated: "2024-02-20"
 dateUpdated: "2024-02-20"

@@ -1,6 +1,6 @@
 ---
-title: "Routing"
-description: "Learn how to define routes and handlers in Ghast, including support for multiple routers and route parameters."
+title: "Routing and Middleware"
+description: "Learn how to define routes and handlers in Ghast, including support for multiple routers, route parameters, and middleware."
 authors: ["Leonardo"]
 dateCreated: "2024-02-20"
 dateUpdated: "2024-02-20"
