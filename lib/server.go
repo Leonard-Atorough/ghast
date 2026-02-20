@@ -49,6 +49,9 @@ func NewServer() *Server {
 	}
 }
 
+// AddRouter adds a Router to the server with an optional path prefix.
+// If the path prefix is empty, it defaults to "/". Routers are matched based on longest prefix first.
+// Returns the server instance for chaining.
 func (s *Server) AddRouter(rp RouterPath) *Server {
 	if _, exists := s.routers[rp.Path]; exists {
 		log.Printf("Warning: Router for path %s already exists. Overwriting.", rp.Path)

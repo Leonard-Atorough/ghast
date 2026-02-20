@@ -121,6 +121,13 @@ func (rw *responseWriter) JSONPretty(statusCode int, data interface{}) error {
 	return err
 }
 
+func (rw *responseWriter) HTML(statusCode int, html string) error {
+	rw.Status(statusCode)
+	rw.SetHeader("Content-Type", "text/html")
+	_, err := rw.write([]byte(html))
+	return err
+}
+
 // writeStatusAndHeaders writes the HTTP status line and headers.
 func (rw *responseWriter) writeStatusAndHeaders() {
 	var buf strings.Builder
