@@ -203,6 +203,133 @@ router.Use(middleware.ResponseTimeMiddleware(middleware.ResponseTimeOptions{
 X-Response-Time: 45ms
 ```
 
+## Rate Limit Middleware
+
+Implements simple per-IP rate limiting to prevent abuse. Configurable for requests per minute.
+
+### Type
+
+#### `RateLimitOptions`
+
+Configuration for the Rate Limit Middleware.
+
+```go
+type RateLimitOptions struct {
+    RequestsPerMinute int // Maximum number of requests per minute
+}
+```
+
+### Functions
+
+#### `RateLimitMiddleware(opts RateLimitOptions) ghast.Middleware`
+
+Creates and returns a Rate Limit Middleware with the specified options.
+
+**Props:**
+
+- `opts` (RateLimitOptions): Configuration options
+  - `RequestsPerMinute` (int): Maximum allowed requests per minute from a single IP address
+
+**Returns:** A Middleware function that enforces rate limits based on client IP
+
+**Behavior:**
+
+- Tracks request counts per IP address in memory
+- Resets counts every minute
+- If a client exceeds the limit, responds with 429 Too Many Requests
+- Does not block requests that are within the limit
+- Executes before the handler via middleware chain
+
+**Example:**
+
+```go
+// Limit to 60 requests per minute
+router.Use(middleware.RateLimitMiddleware(middleware.RateLimitOptions{
+    RequestsPerMinute: 60,
+}))
+```
+
+\*_Response Example when limit exceeded:_
+
+```json
+{
+  "error": "Too Many Requests"
+}
+```
+
+## CORS Middleware
+
+Handles Cross-Origin Resource Sharing (CORS) by adding appropriate headers to responses. Configurable for allowed origins, methods, headers, and credentials.
+
+### Type
+
+#### `CorsOptions`
+
+Configuration for the CORS Middleware.
+
+```go
+type CorsOptions struct {
+    AllowedOrigins    []string // List of allowed origins (default: ["*"])
+    AllowedMethods    []string // List of allowed HTTP methods (default: ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    AllowedHeaders    []string // List of allowed request headers (default: [])
+    PreflightMaxAge   int      // Max age for preflight requests in seconds (default: 0)
+    PreflightContinue bool     // Whether to continue processing preflight requests (default: false)
+    Credentials       bool     // Whether to allow credentials (default: false)
+}
+```
+
+### Functions
+
+#### `CorsMiddleware(opts CorsOptions) ghast.Middleware`
+
+Creates and returns a CORS Middleware with the specified options.
+
+**Props:**
+
+- `opts` (CorsOptions): Configuration options
+  - `AllowedOrigins` ([]string): List of allowed origins. Use ["*"] to allow all origins
+  - `AllowedMethods` ([]string): List of allowed HTTP methods. Defaults to common methods if empty
+  - `AllowedHeaders` ([]string): List of allowed request headers. If empty, echoes back requested headers
+  - `PreflightMaxAge` (int): Max age for preflight requests in seconds. Set to 0 to disable
+  - `PreflightContinue` (bool): Whether to continue processing preflight requests after handling CORS. Defaults to false (ends preflight requests)
+  - `Credentials` (bool): Whether to allow credentials (cookies, authorization headers). Defaults to false
+
+**Returns:** A Middleware function that adds CORS headers to responses
+
+**Behavior:**
+
+- For each request, checks the Origin header and adds appropriate CORS headers based on configuration
+- Handles preflight OPTIONS requests by responding with allowed methods and headers
+- If `PreflightContinue` is false, ends preflight requests immediately after responding
+- Executes before the handler via middleware chain
+
+**Example:**
+
+```go
+// Allow all origins with default methods and headers
+router.Use(middleware.CorsMiddleware(middleware.CorsOptions{}))
+// Allow specific origins and methods
+router.Use(middleware.CorsMiddleware(middleware.CorsOptions{
+    AllowedOrigins: []string{"https://example.com", "https://another.com"},
+    AllowedMethods: []string{"GET", "POST"},
+}))
+// Allow credentials and custom headers
+router.Use(middleware.CorsMiddleware(middleware.CorsOptions{
+    AllowedOrigins: []string{"https://example.com"},
+    Credentials:    true,
+    AllowedHeaders: []string{"Authorization", "Content-Type"},
+}))
+```
+
+**Response Headers Example:**
+
+```http
+Access-Control-Allow-Origin: https://example.com
+Access-Control-Allow-Methods: GET, POST
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Allow-Credentials: true
+```
+
 ---
 
 ## Middleware Composition
@@ -218,6 +345,9 @@ server := ghast.NewServer()
 server.Use(middleware.RequestIDMiddleware(middleware.RequestIDOptions{}))
 server.Use(middleware.ResponseTimeMiddleware(middleware.ResponseTimeOptions{}))
 server.Use(middleware.RecoveryMiddleware(middleware.Options{Log: true}))
+server.Use(middleware.RateLimitMiddleware(middleware.RateLimitOptions{
+    RequestsPerMinute: 60,
+}))
 ```
 
 ### Router-Level Middleware
