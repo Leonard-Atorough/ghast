@@ -121,10 +121,18 @@ func (rw *responseWriter) JSONPretty(statusCode int, data interface{}) error {
 	return err
 }
 
+// HTML sends an HTML response with the given status code.
 func (rw *responseWriter) HTML(statusCode int, html string) error {
 	rw.Status(statusCode)
 	rw.SetHeader("Content-Type", "text/html")
 	_, err := rw.write([]byte(html))
+	return err
+}
+
+func (rw *responseWriter) Plain(statusCode int, text string) error {
+	rw.Status(statusCode)
+	rw.SetHeader("Content-Type", "text/plain")
+	_, err := rw.write([]byte(text))
 	return err
 }
 

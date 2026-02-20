@@ -338,6 +338,8 @@ type ResponseWriter interface {
     SendString(string) (int, error)
     JSON(statusCode int, data interface{}) error
     JSONPretty(statusCode int, data interface{}) error
+    Plain(statusCode int, data string) error
+    HTML(statusCode int, data string) error
 }
 ```
 
@@ -411,6 +413,24 @@ Marshals data as pretty-printed JSON and sends with application/json content-typ
 
 - `statusCode` (int): HTTP status code
 - `data` (interface{}): Data to marshal as JSON
+
+#### `Plain(statusCode int, data string) error`
+
+Sends a plain text response.
+
+**Props:**
+
+- `statusCode` (int): HTTP status code
+- `data` (string): Text to send
+
+#### `HTML(statusCode int, data string) error`
+
+Sends an HTML response.
+
+**Props:**
+
+- `statusCode` (int): HTTP status code
+- `data` (string): HTML string to send
 
 ---
 
