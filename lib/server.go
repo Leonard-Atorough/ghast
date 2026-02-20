@@ -12,10 +12,11 @@ import (
 // Server represents an HTTP server that uses a Router to handle requests.
 // It manages TCP listening, connection handling, and request parsing.
 type Server struct {
-	routers  map[string]Router // TODO: Add support for multiple routers. We can do this by defining a RouterGroup struct that can hold multiple routers and route requests to the appropriate router based on path prefixes or other criteria.
-	addr     string
-	listener net.Listener // TODO: Add listener for graceful shutdown
-	isDone   bool         // TODO: Add shutdown signal
+	routers     map[string]Router // Map of path prefixes to routers (e.g., "/api" -> apiRouter)
+	middlewares []Middleware      // Server-level middleware (applied to all routers)
+	addr        string
+	listener    net.Listener // TODO: Add listener for graceful shutdown
+	isDone      bool         // TODO: Add shutdown signal
 
 	// TODO: Add fields for future improvements:
 	// - listener net.Listener (for graceful shutdown)
@@ -56,6 +57,11 @@ func (s *Server) AddRouter(rp RouterPath) *Server {
 		rp.Path = "/" // Default to root if empty
 	}
 	s.routers[rp.Path] = rp.Router
+	return s
+}
+
+func (s *Server) Use(middleware Middleware) *Server {
+	s.middlewares = append(s.middlewares, middleware)
 	return s
 }
 
@@ -176,7 +182,10 @@ func (s *Server) handleConnection(conn net.Conn) {
 					req.Path = "/"
 				}
 			}
-			matchedRouter.ServeHTTP(rw, req)
+
+			routerWithMiddleware := ChainMiddleware(matchedRouter, s.middlewares)
+
+			routerWithMiddleware.ServeHTTP(rw, req)
 			req.Path = originalPath // Restore original path for logging or debugging
 		} else {
 			rw.Status(404)
