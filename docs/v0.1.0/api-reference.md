@@ -2,8 +2,8 @@
 title: "Routing"
 description: "Learn how to define routes and handlers in Ghast, including support for multiple routers and route parameters."
 authors: ["Leonardo"]
-dateCreated: "2024-06-01"
-dateUpdated: "2024-06-01"
+dateCreated: "2024-02-20"
+dateUpdated: "2024-02-20"
 ---
 
 # V 0.1.0 API Reference
