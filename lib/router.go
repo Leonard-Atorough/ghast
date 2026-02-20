@@ -179,6 +179,9 @@ func (r *router) Use(middleware Middleware) Router {
 }
 
 // UsePath adds a middleware function to a specific path.
+// A better way to do this is to support a middleware stack for each route on route registration:
+// func (r *router) Handle(method string, path string, handler Handler, middlewares ...Middleware) {
+// This takes advantage of the ... (variadic) syntax to allow for an optional list of middleware to be passed in at route registration time. This way, you can specify middleware that applies only to that route without needing a separate UsePath method. The Handle method would then chain the provided middleware with any global middleware before registering the final handler.
 func (r *router) UsePath(path string, middleware Middleware) Router {
 	if r.pathMiddlewares == nil {
 		r.pathMiddlewares = make(map[string][]Middleware)

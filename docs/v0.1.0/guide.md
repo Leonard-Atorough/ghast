@@ -229,3 +229,53 @@ func NewRouter() ghast.Router {
 ```
 
 # Middleware
+
+For those more fammiliar with Express JS, ghast also supports middleware functions. Middleware functions are functions that have access to the request and response objects, and can perform operations before or after the main route handler is executed. You can apply middleware at the server level (affecting all routers) or at the router level (affecting only routes defined on that router). Middleware can be used for tasks such as logging, authentication, error handling, and more.
+
+Ghast middleware functions are declared a little differently than Express middleware. In Ghast, a middleware function is a function that takes a `Handler` and returns a new `Handler`. This allows you to wrap the original handler with additional functionality. This handler can be seen as the equivalent of the `next` function in Express middleware, allowing you to call the next handler in the chain after performing your middleware logic. For example, here is how you can create a simple logging middleware that logs the request path before calling the next handler:
+
+```go
+func customMiddleware(next ghast.Handler) ghast.Handler {
+    return ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+        // Before handler
+        log.Println("Request:", r.Path)
+        // Call handler
+        next.ServeHTTP(w, r)
+        // After handler
+        log.Println("Response sent")
+    })
+}
+```
+
+You can then apply this middleware to the server or to a specific router:
+
+```go
+// Apply middleware to the server (affects all routers)
+server.Use(customMiddleware)
+// Apply middleware to a specific router
+router.Use(customMiddleware)
+// You can also apply route-specific middleware
+router.UsePath("/users/:id", customMiddleware) // This applies the middleware only to routes that match /users/:id
+```
+
+### A note on the order of middleware execution
+
+When a request comes in, the server will first match the request path to the appropriate router based on the longest prefix match. Once the router is selected, the server will execute any server-level middleware in the reverse order they were added, then any router-level middleware for that router, and finally any route-specific middleware for the matched route. After all middleware has been executed, the final route handler will be called to generate the response. This allows you to have a flexible and powerful middleware system that can be applied at different levels of your application architecture. Example:
+
+```go
+// Server-level middleware
+server.Use(loggingMiddleware)
+server.Use(recoveryMiddleware)
+// Router-level middleware
+router.Use(authMiddleware)
+// Route-specific middleware
+router.UsePath("/users/:id", userMiddleware)
+
+// When a request comes in for /users/123, the execution order will be:
+// 1. Recovery middleware (server-level)
+// 2. Logging middleware (server-level)
+// 3. Auth middleware (router-level)
+// 4. User middleware (route-specific)
+```
+
+Middleware gives us a way to access and modify the request and response objects at different stages of the request handling process, allowing us to implement cross-cutting concerns like logging, authentication, and error handling in a clean and modular way.
