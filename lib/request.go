@@ -8,6 +8,7 @@ import (
 )
 
 const CRLF = "\r\n"
+const HTTPVersion = "HTTP/1.1"
 
 // HTTP Methods
 const (
@@ -110,10 +111,7 @@ func ParseRequest(rawRequest string) (*Request, error) {
 		path = strings.Split(path, "?")[0] // Strip query string from path for routing
 	}
 
-	var params map[string]string // Route parameters will be populated later by the router when matching the request to a route with parameters.
-	// We need a way to determine if the request path has request params (e.g., /users/:id) and extract those params into the Request struct.
-	// This will likely require changes to the router to support path parameters and a way to match incoming request paths to registered routes with parameters.
-	// Once we have that in place, we can populate the Params field of the Request struct with the extracted parameters from the path.
+	var params map[string]string // Params will be populated later by the router when matching dynamic routes
 
 	req := &Request{
 		Method:  method,

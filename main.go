@@ -5,6 +5,7 @@ import (
 	"log"
 
 	ghast "ghast/lib"
+	middleware "ghast/middleware"
 )
 
 func main() {
@@ -15,9 +16,17 @@ func main() {
 	// Create the router and register routes
 	router := ghast.NewRouter()
 
+	loggingMiddleware := func(next ghast.Handler) ghast.Handler {
+		return ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+			log.Printf("Request: %s %s", r.Method, r.Path)
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	// Apply global middleware
-	router.Use(ghast.LoggingMiddleware)
-	router.Use(ghast.RecoveryMiddleware)
+	router.Use(loggingMiddleware)
+	router.Use(middleware.RecoveryMiddleware(middleware.Options{Log: true}))
+	router.Use(middleware.RequestIDMiddleware(middleware.RequestIDOptions{HeaderName: "X-Request-ID"}))
 
 	// Register example routes
 	router.Get("/", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {

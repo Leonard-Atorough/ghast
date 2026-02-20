@@ -22,6 +22,10 @@ type ResponseWriter interface {
 	JSON(statusCode int, data interface{}) error // JSON marshals data as JSON and sends it with application/json content-type.
 
 	JSONPretty(statusCode int, data interface{}) error // JSONPretty marshals data as pretty-printed JSON.
+
+	HTML(statusCode int, html string) error // HTML sends an HTML response with the given status code.
+
+	Plain(statusCode int, text string) error // Plain sends a plain text response with the given status code.
 }
 
 // responseWriter implements ResponseWriter interface.

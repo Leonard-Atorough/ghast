@@ -243,13 +243,7 @@ Applies multiple middleware functions to a handler in order.
 
 ### Built-in Middleware
 
-#### `LoggingMiddleware(next Handler) Handler`
-
-Logs HTTP request details (method and path) and response timing.
-
-#### `RecoveryMiddleware(next Handler) Handler`
-
-Recovers from panics and returns a 500 error instead of crashing.
+Middleware documentation can be found in the [Middleware Reference](./middleware-reference.md) section, which includes logging, recovery, CORS, and more.
 
 ---
 

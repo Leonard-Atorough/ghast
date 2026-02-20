@@ -1,10 +1,5 @@
 package ghast
 
-import (
-	"log"
-	"time"
-)
-
 // Middleware is a function type that wraps a Handler with additional functionality.
 // It takes a Handler and returns a new Handler that wraps the original.
 //
@@ -45,29 +40,4 @@ func ChainMiddleware(handler Handler, middlewares []Middleware) Handler {
 		handler = middleware(handler)
 	}
 	return handler
-}
-
-// LoggingMiddleware logs HTTP request details and response timing.
-func LoggingMiddleware(next Handler) Handler {
-	return HandlerFunc(func(rw ResponseWriter, req *Request) {
-		start := time.Now()
-		log.Printf("[%s] %s %s", req.Method, req.Path, req.Version)
-		defer func() {
-			log.Printf("Completed in %v", time.Since(start))
-		}()
-		next.ServeHTTP(rw, req)
-	})
-}
-
-// RecoveryMiddleware recovers from panics and returns a 500 error instead of crashing.
-func RecoveryMiddleware(next Handler) Handler {
-	return HandlerFunc(func(rw ResponseWriter, req *Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v", err)
-				rw.Status(500).SendString("Internal Server Error")
-			}
-		}()
-		next.ServeHTTP(rw, req)
-	})
 }
