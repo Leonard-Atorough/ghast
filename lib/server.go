@@ -261,7 +261,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			routerWithMiddleware.ServeHTTP(rw, req)
 
 			req.Path = originalPath // Restore original path for logging or debugging
-		} else if matchedRouter == nil {
+		} else {
 			// Try the root router if no prefix matched
 			routerWithMiddleware := ChainMiddleware(s.rootRouter, s.middlewares)
 			routerWithMiddleware.ServeHTTP(rw, req)
