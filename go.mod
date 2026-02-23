@@ -1,4 +1,4 @@
-module ghast
+module github.com/Leonard-Atorough/ghast
 
 go 1.25.0
 

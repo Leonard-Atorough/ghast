@@ -1,13 +1,14 @@
 package middleware
 
 import (
-	ghast "ghast/lib"
 	"log"
+
+	"github.com/Leonard-Atorough/ghast"
 )
 
 // RecoveryMiddleware is a middleware that recovers from panics in handlers and returns a 500 error.
 type Options struct {
-	Log bool // Whether to log the panic error (default: true)
+	Log    bool        // Whether to log the panic error (default: true)
 	Logger *log.Logger // Optional custom logger (default: standard logger)
 }
 
@@ -31,4 +32,3 @@ func RecoveryMiddleware(opts Options) ghast.Middleware {
 		})
 	}
 }
-

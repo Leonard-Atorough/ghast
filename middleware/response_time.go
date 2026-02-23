@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"fmt"
-	ghast "ghast/lib"
 	"time"
+
+	"github.com/Leonard-Atorough/ghast"
 )
 
 const defaultResponseTimeHeader = "X-Response-Time"

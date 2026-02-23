@@ -27,7 +27,7 @@ A "ghast" is a ghostly creature from folklore, often depicted as a haunting pres
 ### Installation
 
 ```bash
-go get github.com/YourUsername/ghast
+go get github.com/Leonard-Atorough/ghast
 ```
 
 ### Hello World
@@ -37,22 +37,20 @@ package main
 
 import (
 	"log"
-	"ghast/lib"
+	"github.com/Leonard-Atorough/ghast"
 )
 
 func main() {
-	router := ghast.NewRouter()
+    app := ghast.New()
 
-	// Simple GET route
-	router.Get("/hello", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
-		w.JSON(200, map[string]string{"message": "Hello, World!"})
-	}))
+    app.Get("/hello", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
+        w.JSON(200, map[string]string{
+            "message": "Hello, World!",
+        })
+    }))
 
-    server := ghast.NewServer(router)
-	// Start server (see main.go for full implementation)
-	if err := server.Listen(":8080"); err != nil {
-        log.Fatal(err)
-    }
+    log.Println("Server running on http://localhost:8080")
+    app.Listen(":8080")
 }
 ```
 
@@ -111,20 +109,26 @@ contentType := r.ContentType()
 
 ### Middleware Support
 
+Ghast supports middleware composition at multiple levels:
+
 ```go
-// Server-level middleware - applies to all routes
-server.Use(LoggingMiddleware)
-server.Use(RecoveryMiddleware)
+app := ghast.New()
+
+// App-level middleware - applies to all routes
+app.Use(recoveryMiddleware)
+app.Use(requestIDMiddleware)
 
 // Router-level middleware - applies to all routes on that router
-router.Use(authMiddleware)
+userRouter := ghast.NewRouter()
+userRouter.Use(authMiddleware)
+app.Route("/users", userRouter)
 
 // Route-specific middleware - applies only to that route
-router.Get("/api/users/:id", userHandler, authMiddleware)
+app.Get("/admin", adminHandler, authMiddleware)
 
 // Custom middleware
-customMiddleware := func(next Handler) Handler {
-    return HandlerFunc(func(w ResponseWriter, r *Request) {
+customMiddleware := func(next ghast.Handler) ghast.Handler {
+    return ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
         // Before handler
         log.Println("Request:", r.Path)
 
@@ -135,26 +139,50 @@ customMiddleware := func(next Handler) Handler {
         log.Println("Response sent")
     })
 }
-server.Use(customMiddleware)
+app.Use(customMiddleware)
 ```
 
-## Architecture
+**Built-in Middleware** (see [Middleware Reference](docs/v0.5.0/middleware-reference.md)):
+
+- **Recovery:** Catches panics and returns graceful error responses
+- **Request ID:** Generates unique IDs for request tracing
+- **Response Time:** Measures and reports request processing time
+- **CORS:** Enables cross-origin resource sharing
+- **Rate Limit:** Implements per-IP rate limiting
+
+## Project Structure
 
 ```
 ghast/
-├── lib/                    # Core framework
-│   ├── router.go          # HTTP routing
-│   ├── handler.go         # Handler interface
-│   ├── request.go         # Request parsing & helpers
-│   ├── response.go        # Response writing & helpers
-│   ├── middleware.go      # Middleware system
-│   └── error.go           # Error handling
+├── ghast.go               # Main app struct and public API
+├── router.go              # HTTP routing engine
+├── handler.go             # Handler interface and types
+├── request.go             # Request parsing & helpers
+├── response.go            # Response writing & helpers
+├── middleware.go          # Middleware system
+├── error.go               # Error handling
+├── group.go               # Route grouping
+├── server.go              # Server and listener
+├── http_status.go         # HTTP status constants
 │
-├── examples/              # Example handlers
-│   └── handlers.go        # Sample implementations
+├── middleware/            # Built-in middleware packages
+│   ├── cors.go           # Cross-Origin Resource Sharing
+│   ├── rate_limit.go     # Per-IP rate limiting
+│   ├── recovery.go       # Panic recovery
+│   ├── request_id.go     # Request ID generation
+│   └── response_time.go  # Response time tracking
 │
-├── main.go               # TCP server & entry point
-├── go.mod
+├── examples/              # Example applications
+│   ├── 1_basic_example.go
+│   ├── 2_grouped_routes_example.go
+│   └── 3_custom_middleware_example.go
+│
+├── docs/                  # Documentation
+│   └── v0.5.0/
+│       ├── guide.md                    # Routing and middleware guide
+│       ├── api-reference.md            # Complete API documentation
+│       └── middleware-reference.md     # Middleware reference
+│
 └── README.md
 ```
 
@@ -170,7 +198,7 @@ ghast/
 ### Basic Routing & JSON APIs
 
 ```go
-import "ghast/lib"
+import "github.com/Leonard-Atorough/ghast"
 
 type User struct {
     ID    int    `json:"id"`
@@ -178,20 +206,20 @@ type User struct {
     Email string `json:"email"`
 }
 
-router := lib.NewRouter()
+app := ghast.New()
 
 // GET /users/:id
-router.Get("/users/:id", lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request) {
+app.Get("/users/:id", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
     id := r.Param("id")
     user := User{ID: 1, Name: "Alice", Email: "alice@example.com"}
     w.JSON(200, user)
 }))
 
 // POST /users
-router.Post("/users", lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request) {
+app.Post("/users", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
     var user User
     if err := r.JSON(&user); err != nil {
-        lib.Error(w, 400, "Invalid request body")
+        ghast.Error(w, 400, "Invalid request body")
         return
     }
     user.ID = 2
@@ -199,7 +227,7 @@ router.Post("/users", lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request)
 }))
 
 // GET /health (query parameter example)
-router.Get("/health", lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request) {
+app.Get("/health", ghast.HandlerFunc(func(w ghast.ResponseWriter, r *ghast.Request) {
     verbose := r.Query("verbose") == "true"
     status := "healthy"
     w.JSON(200, map[string]interface{}{
@@ -207,116 +235,145 @@ router.Get("/health", lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request)
         "verbose": verbose,
     })
 }))
+
+app.Listen(":8080")
+```
+
+### Organized Routing with Sub-Routers
+
+```go
+app := ghast.New()
+
+// Create API v1 router
+apiv1 := ghast.NewRouter()
+apiv1.Get("/status", statusHandler)
+apiv1.Get("/users", listUsersHandler)
+apiv1.Post("/users", createUserHandler)
+
+// Create API v2 router with different handlers
+apiv2 := ghast.NewRouter()
+apiv2.Get("/status", statusHandlerV2)
+apiv2.Get("/users", listUsersHandlerV2)
+
+// Mount routers at different prefixes
+app.Route("/api/v1", apiv1)
+app.Route("/api/v2", apiv2)
+
+app.Listen(":8080")
 ```
 
 ### Middleware
 
 ```go
-// Logging middleware
-loggingMiddleware := func(next lib.Handler) lib.Handler {
-    return lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request) {
-        log.Printf("[%s] %s %s", r.Method, r.Path, r.Version)
-        next.ServeHTTP(w, r)
-    })
-}
+import (
+    "log"
+    "github.com/Leonard-Atorough/ghast"
+    "github.com/Leonard-Atorough/ghast/middleware"
+)
 
-// Authentication middleware
-authMiddleware := func(next lib.Handler) lib.Handler {
-    return lib.HandlerFunc(func(w lib.ResponseWriter, r *lib.Request) {
-        token := r.GetHeader("Authorization")
-        if token == "" {
-            lib.Error(w, 401, "Missing authorization token")
-            return
-        }
-        next.ServeHTTP(w, r)
-    })
-}
+app := ghast.New()
 
-router := lib.NewRouter()
-router.Use(loggingMiddleware)
-router.Post("/api/users", postUserHandler, authMiddleware)
+// Apply global middleware
+app.Use(middleware.RecoveryMiddleware(middleware.Options{Log: true}))
+app.Use(middleware.RequestIDMiddleware(middleware.RequestIDOptions{}))
+
+// Router with rate limiting
+apiRouter := ghast.NewRouter()
+apiRouter.Use(middleware.RateLimitMiddleware(middleware.RateLimitOptions{
+    RequestsPerMinute: 100,
+}))
+
+apiRouter.Get("/data", dataHandler)
+app.Route("/api", apiRouter)
+
+// CORS for public endpoints
+publicRouter := ghast.NewRouter()
+publicRouter.Use(middleware.CorsMiddleware(middleware.CorsOptions{
+    AllowedOrigins: []string{"*"},
+}))
+
+publicRouter.Get("/status", statusHandler)
+app.Route("/public", publicRouter)
+
+app.Listen(":8080")
 ```
 
 ## Testing
 
-Basic tests are included in `lib/ghast_test.go`:
+Unit tests are included in the repository:
 
 ```bash
-go test ./lib/...
+go test ./...
 ```
 
 Tests cover:
 
-- ✅ Router matching (GET, POST, PUT, DELETE, HEAD, OPTIONS)
-- ✅ 404 handling
-- ✅ Middleware chaining order
-- ✅ Request query parameters
-- ✅ JSON marshaling/unmarshaling
-- ✅ Response header chaining
+- ✅ Router matching (GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH)
+- ✅ Route parameters and wildcards
+- ✅ 404 and error handling
+- ✅ Middleware chaining and order
+- ✅ Request parsing (query, JSON, headers)
+- ✅ Response writing and chainable methods
+- ✅ Mixed middleware application
+- ✅ Sub-router mounting and prefix stripping
+
+## Documentation
+
+Complete documentation is available in the `docs/v0.5.0/` directory:
+
+- **[Routing & Middleware Guide](docs/v0.5.0/guide.md)** - Learn routing, path parameters, middleware composition, and sub-routers
+- **[API Reference](docs/v0.5.0/api-reference.md)** - Comprehensive reference for all types, interfaces, and functions
+- **[Middleware Reference](docs/v0.5.0/middleware-reference.md)** - Detailed guide to built-in middleware (Recovery, Request ID, Response Time, CORS, Rate Limiting)
+
+## Examples
+
+Learning examples are available in the `examples/` folder:
+
+1. **basic_example.go** - Simple hello-world and JSON API example
+2. **grouped_routes_example.go** - Sub-routers and route organization
+3. **custom_middleware_example.go** - Writing custom middleware
 
 ## Development Roadmap
 
-### Phase 1: Foundation ✅
+### Completed (v0.5.0) ✅
 
 - [x] Core router with HTTP methods
 - [x] Express-like convenience methods
 - [x] Response/request helpers
-- [x] Middleware system
-- [x] Basic tests
-- [x] Documentation
-
-### Phase 2: Dynamic Routing (Planned)
-
+- [x] Middleware system with composition
 - [x] Path parameters (`:id`, `:slug`)
-- [x] Regex route matching
-- [x] Multiple routers on server (e.g. API router, admin router)
-- [ ] Route groups with shared middleware
-- [ ] 404 and error handling improvements
-- [ ] Graceful shutdown support
-- [ ] Server configuration options (timeouts, max connections)
-- [ ] Server-level middleware (global middleware that applies to all routes)
+- [x] Sub-routers with prefix mounting
+- [x] Built-in middleware (Recovery, Request ID, Response Time, CORS, Rate Limit)
+- [x] Comprehensive documentation
+- [x] Unit tests
 
-### Phase 3: Advanced Features (Optional)
+### Future Enhancements (Optional)
 
-- [ ] JSON schema validation
-- [ ] Rate limiting middleware
-- [ ] CORS middleware
 - [ ] Static file serving
 - [ ] Cookie handling
+- [ ] Form data parsing
+- [ ] WebSocket support
+- [ ] Template rendering
+- [ ] Request validation middleware
+- [ ] Compressed response support
 
-## Learning Resources
-
-If you want to understand how this works:
-
-1. Start with [lib/handler.go](lib/handler.go) - Learn the Handler interface
-2. Read [lib/router.go](lib/router.go) - See how routing works
-3. Check [lib/middleware.go](lib/middleware.go) - Understand middleware chaining
-4. Look at [lib/request.go](lib/request.go) and [lib/response.go](lib/response.go) - See request parsing and response writing
-5. Study [lib/server.go](lib/server.go) - Learn about the server implementation and how it handles TCP connections and HTTP requests
-6. Study [lib/ghast_test.go](lib/ghast_test.go) - Test examples showing all features
-
-## Helpful Go Packages
-
-- `net` - TCP/IP networking
-- `bufio` - Buffered I/O for reading HTTP headers
-- `encoding/json` - JSON marshaling/unmarshaling
-- `strings` - String utilities for parsing
-
-## Code Style & Quality
+## Code Quality
 
 - **Readable:** Clear variable names, comprehensive comments
-- **Testable:** Tests demonstrate intended usage
-- **Documented:** Godoc comments on all public types and functions
-- **Idiomatic:** Follows Go conventions and philosophy
+- **Testable:** Comprehensive unit tests demonstrating all features
+- **Documented:** Complete API documentation and guides
+- **Idiomatic:** Follows Go conventions and best practices
+- **Educational:** Clean code designed to be understandable and learnable
 
 ## Contributing
 
 This is primarily an educational project. Feel free to:
 
-- Fork and modify for learning
-- Add more test examples
+- Fork and modify for learning purposes
+- Read the source code to understand HTTP server design
+- Add more examples or tests
 - Improve documentation
-- Experiment with features
+- Experiment with additional features
 
 ## License
 
@@ -325,6 +382,10 @@ See [LICENSE.md](LICENSE.md) for details.
 
 ---
 
-**Built with ❤️ as a learning project**
+**Built with ❤️ for learning Go, networking, and elegant API design**
 
-Questions? Check the example handlers in `examples/` or read through the well-commented code in `lib/`.
+For questions or to dive deeper:
+
+- Check the [examples/](examples/) folder for working examples
+- Read the [documentation](docs/v0.5.0/) for comprehensive guides
+- Review the well-commented source code

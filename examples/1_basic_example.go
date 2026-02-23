@@ -3,7 +3,7 @@ package examples
 import (
 	"log"
 
-	ghast "ghast/lib"
+	"github.com/Leonard-Atorough/ghast"
 )
 
 // BasicExampleApp demonstrates basic Ghast usage with simple routes and JSON responses.

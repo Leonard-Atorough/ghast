@@ -13,7 +13,7 @@ Routing is a core feature of any web framework, and Ghast provides a simple yet 
 You create an application using `ghast.New()`, which gives you a `Ghast` instance with a built-in root router. You can register routes directly on the app, or build separate `Router` instances and mount them at a path prefix using `app.Route()`.
 
 ```go
-import ghast "ghast/lib"
+import "github.com/Leonard-Atorough/ghast"
 
 app := ghast.New()
 
@@ -185,7 +185,7 @@ The real power of v0.5.0's routing model is that routers are completely independ
 // users/router.go
 package users
 
-import ghast "ghast/lib"
+import "github.com/Leonard-Atorough/ghast"
 
 func Router() ghast.Router {
     r := ghast.NewRouter()
@@ -200,7 +200,7 @@ func Router() ghast.Router {
 // products/router.go
 package products
 
-import ghast "ghast/lib"
+import "github.com/Leonard-Atorough/ghast"
 
 func Router() ghast.Router {
     r := ghast.NewRouter()
@@ -214,7 +214,7 @@ package main
 
 import (
     "log"
-    ghast "ghast/lib"
+    "github.com/Leonard-Atorough/ghast"
     "myapp/users"
     "myapp/products"
 )
@@ -363,7 +363,7 @@ import (
     "log"
     "time"
 
-    ghast "ghast/lib"
+    "github.com/Leonard-Atorough/ghast"
 )
 
 func timingMiddleware(next ghast.Handler) ghast.Handler {

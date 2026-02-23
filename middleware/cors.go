@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	ghast "ghast/lib"
 	"strconv"
+
+	"github.com/Leonard-Atorough/ghast"
 )
 
 const defaultAllowedMethods = "GET, POST, PUT, DELETE, OPTIONS"

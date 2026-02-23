@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	ghast "ghast/lib"
 	"time"
+
+	"github.com/Leonard-Atorough/ghast"
 )
 
 type RateLimitOptions struct {

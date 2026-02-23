@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	ghast "ghast/lib"
+	"github.com/Leonard-Atorough/ghast"
 )
 
 // CustomMiddlewareExampleApp demonstrates building and using custom middleware

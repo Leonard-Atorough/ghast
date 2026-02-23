@@ -3,8 +3,9 @@ package middleware
 import (
 	"fmt"
 	"time"
+
+	"github.com/Leonard-Atorough/ghast"
 	uuid "github.com/google/uuid"
-	ghast "ghast/lib"
 )
 
 const defaultRequestIDHeader = "X-Request-ID"
