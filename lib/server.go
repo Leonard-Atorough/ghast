@@ -10,9 +10,11 @@ import (
 )
 
 // Server represents an HTTP server that uses a Router to handle requests.
-// It manages TCP listening, connection handling, and request parsing.
+// It manages TCP listening, connection handling, request parsing, and routing across multiple routers.
+// The Server includes a root router for direct route registration and supports sub-routers with path prefixes.
 type Server struct {
-	routers     map[string]Router // Map of path prefixes to routers (e.g., "/api" -> apiRouter)
+	rootRouter  Router            // Default router for root-level routes
+	routers     map[string]Router // Map of path prefixes to sub-routers (e.g., "/api" -> apiRouter)
 	middlewares []Middleware      // Server-level middleware (applied to all routers)
 	addr        string
 	listener    net.Listener // TODO: Add listener for graceful shutdown
@@ -23,7 +25,6 @@ type Server struct {
 	// - done chan struct{} (shutdown signal)
 	// - wg sync.WaitGroup (wait for goroutines)
 	// - config ServerConfig (timeouts, max connections, etc.)
-	// - Server level middlewares []Middleware (for global middleware)
 }
 
 // ServerConfig holds configuration options for the server.
@@ -42,17 +43,30 @@ type RouterPath struct {
 	Router Router
 }
 
-// NewServer creates a new Server with the given Router.
+// NewServer creates a new Server with a default root router and empty sub-router map.
 func NewServer() *Server {
 	return &Server{
-		routers: make(map[string]Router),
+		rootRouter: NewRouter(),
+		routers:    make(map[string]Router),
 	}
 }
 
-// AddRouter adds a Router to the server with an optional path prefix.
+// NewRouter creates a new Router and registers it at the specified path prefix.
+// Returns the new Router for chaining route registrations.
+func (s *Server) NewRouter(prefix string) Router {
+	if prefix == "" || prefix == "/" {
+		log.Printf("Warning: Use the server's direct Http methods for root routes, not NewRouter")
+		prefix = "/"
+	}
+	newRouter := NewRouter()
+	s.registerRouter(RouterPath{Path: prefix, Router: newRouter})
+	return newRouter
+}
+
+// registerRouter adds a Router to the server with an optional path prefix.
 // If the path prefix is empty, it defaults to "/". Routers are matched based on longest prefix first.
 // Returns the server instance for chaining.
-func (s *Server) AddRouter(rp RouterPath) *Server {
+func (s *Server) registerRouter(rp RouterPath) *Server {
 	if _, exists := s.routers[rp.Path]; exists {
 		log.Printf("Warning: Router for path %s already exists. Overwriting.", rp.Path)
 	}
@@ -63,6 +77,52 @@ func (s *Server) AddRouter(rp RouterPath) *Server {
 	return s
 }
 
+// HTTP verb methods - delegate to root router for convenience
+
+// Get registers a GET handler on the root router. Returns the server for chaining.
+func (s *Server) Get(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Get(path, handler, middlewares...)
+	return s
+}
+
+// Post registers a POST handler on the root router. Returns the server for chaining.
+func (s *Server) Post(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Post(path, handler, middlewares...)
+	return s
+}
+
+// Put registers a PUT handler on the root router. Returns the server for chaining.
+func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Put(path, handler, middlewares...)
+	return s
+}
+
+// Delete registers a DELETE handler on the root router. Returns the server for chaining.
+func (s *Server) Delete(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Delete(path, handler, middlewares...)
+	return s
+}
+
+// Patch registers a PATCH handler on the root router. Returns the server for chaining.
+func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Patch(path, handler, middlewares...)
+	return s
+}
+
+// Head registers a HEAD handler on the root router. Returns the server for chaining.
+func (s *Server) Head(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Head(path, handler, middlewares...)
+	return s
+}
+
+// Options registers an OPTIONS handler on the root router. Returns the server for chaining.
+func (s *Server) Options(path string, handler Handler, middlewares ...Middleware) *Server {
+	s.rootRouter.Options(path, handler, middlewares...)
+	return s
+}
+
+// Use adds middleware to the server. Server-level middleware is applied to all routes across all routers.
+// Returns the server for chaining.
 func (s *Server) Use(middleware Middleware) *Server {
 	s.middlewares = append(s.middlewares, middleware)
 	return s
@@ -152,7 +212,15 @@ func (s *Server) handleConnection(conn net.Conn) {
 			}
 		}
 
-		req.ClientIP = conn.RemoteAddr().String() // Populate client IP for potential logging or middleware use
+		// Very basic client IP extraction for potential logging or middleware use. In a real implementation, this should be more robust and handle cases like proxies
+		// and X-Forwarded-For headers.
+		// See echo's ip.go for a more robust implementation: https://github.com/labstack/echo/blob/master/ip.go
+		host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+		if err != nil {
+			req.ClientIP = conn.RemoteAddr().String() // Fallback to full address if splitting fails
+		} else {
+			req.ClientIP = host // Populate client IP for potential logging or middleware use
+		}
 
 		// Process the request through the router
 		rw := NewResponseWriter(conn)
@@ -193,13 +261,10 @@ func (s *Server) handleConnection(conn net.Conn) {
 			routerWithMiddleware.ServeHTTP(rw, req)
 
 			req.Path = originalPath // Restore original path for logging or debugging
-		} else {
-			rw.Status(404)
-			rw.Send([]byte("404 Not Found - No matching router"))
-		}
-
-		// Check for connection keep-alive
-		if connHeader := req.Headers["Connection"]; !strings.EqualFold(connHeader, "keep-alive") {
+		} else if matchedRouter == nil {
+			// Try the root router if no prefix matched
+			routerWithMiddleware := ChainMiddleware(s.rootRouter, s.middlewares)
+			routerWithMiddleware.ServeHTTP(rw, req)
 			s.isDone = true // TODO: Implement proper shutdown signaling
 			return
 		}

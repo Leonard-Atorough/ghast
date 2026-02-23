@@ -25,17 +25,6 @@ type Router interface {
 	// Use adds a middleware function to the router. Middleware functions are applied to all handlers registered with the router, allowing you to add common
 	// functionality (e.g., logging, authentication) across all routes without having to modify each handler individually.
 	Use(middleware Middleware) Router
-
-	// Listen starts the HTTP server on the given address (e.g., ":8080")
-	Listen(addr string) error
-
-	// Shutdown gracefully shuts down the server, allowing any in-flight requests to complete before closing the server.
-	Shutdown() error
-}
-
-func (r *router) Shutdown() error {
-	// Placeholder - actual implementation depends on embedding the server logic
-	return nil
 }
 
 type router struct {

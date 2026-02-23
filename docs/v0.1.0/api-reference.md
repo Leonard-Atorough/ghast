@@ -12,9 +12,25 @@ dateUpdated: "2024-02-20"
 
 > Ghast 0.1.0 needs Go 1.20 or later.
 
+## Entry Point
+
+### `New() *Server`
+
+Creates and returns a new Server instance, ready for route registration and listening. This is the primary entry point for the Ghast framework.
+
+**Example:**
+
+```go
+app := ghast.New()
+app.Get("/", handler)
+app.Listen(":8080")
+```
+
+---
+
 ## Server
 
-Represents an HTTP server that manages multiple routers and handles incoming TCP connections.
+Represents an HTTP server that manages multiple routers and handles incoming TCP connections. The Server includes a built-in root router for direct route registration and supports creating sub-routers with path prefixes.
 
 ### Types
 
@@ -22,7 +38,8 @@ Represents an HTTP server that manages multiple routers and handles incoming TCP
 
 ```go
 type Server struct {
-    routers     map[string]Router  // Map of path prefixes to routers
+    rootRouter  Router             // Default router for root-level routes
+    routers     map[string]Router  // Map of path prefixes to sub-routers
     middlewares []Middleware       // Server-level middleware
     addr        string             // Server address
     listener    net.Listener       // TCP listener
@@ -32,18 +49,54 @@ type Server struct {
 
 ### Methods
 
-#### `NewServer() *Server`
+#### `Get(path string, handler Handler, middlewares ...Middleware) *Server`
 
-Creates a new Server instance with empty routers and middleware maps.
-
-#### `AddRouter(rp RouterPath) *Server`
-
-Registers a router at a specific path prefix. Returns the server for chaining.
+Registers a GET route on the root router. Returns the server for chaining.
 
 **Props:**
 
-- `rp.Path` (string): Path prefix (e.g., "/api"). Defaults to "/" if empty
-- `rp.Router` (Router): Router instance to register
+- `path` (string): URL path (e.g., "/users/:id")
+- `handler` (Handler): Handler to execute for matching requests
+- `middlewares` (...Middleware): Optional middleware to apply to this route
+
+#### `Post(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers a POST route on the root router. Returns the server for chaining.
+
+#### `Put(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers a PUT route on the root router. Returns the server for chaining.
+
+#### `Delete(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers a DELETE route on the root router. Returns the server for chaining.
+
+#### `Patch(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers a PATCH route on the root router. Returns the server for chaining.
+
+#### `Head(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers a HEAD route on the root router. Returns the server for chaining.
+
+#### `Options(path string, handler Handler, middlewares ...Middleware) *Server`
+
+Registers an OPTIONS route on the root router. Returns the server for chaining.
+
+#### `NewRouter(prefix string) Router`
+
+Creates a new Router and registers it as a sub-router at the specified path prefix. Returns the new Router for chaining route registrations.
+
+**Props:**
+
+- `prefix` (string): Path prefix for the sub-router (e.g., "/api")
+
+**Example:**
+
+```go
+apiRouter := app.NewRouter("/api")
+apiRouter.Get("/users", handler)  // Route at /api/users
+```
 
 #### `Use(middleware Middleware) *Server`
 
@@ -69,25 +122,22 @@ Gracefully shuts down the server.
 
 ## Router
 
-Interface for HTTP routing and middleware management. Handles path matching (exact and dynamic parameters) and middleware composition.
+Interface for HTTP routing and middleware management. Handles path matching (exact and dynamic parameters) and middleware composition. Router instances are typically created via `Server.NewRouter(prefix)`, though `NewRouter()` can be called directly for custom routing needs.
 
 ### Interface
 
 ```go
 type Router interface {
-    Handle(method string, path string, handler Handler)
-    Get(path string, handler Handler) Router
-    Post(path string, handler Handler) Router
-    Put(path string, handler Handler) Router
-    Delete(path string, handler Handler) Router
-    Patch(path string, handler Handler) Router
-    Head(path string, handler Handler) Router
-    Options(path string, handler Handler) Router
+    Handle(method string, path string, handler Handler, middlewares ...Middleware)
+    Get(path string, handler Handler, middlewares ...Middleware) Router
+    Post(path string, handler Handler, middlewares ...Middleware) Router
+    Put(path string, handler Handler, middlewares ...Middleware) Router
+    Delete(path string, handler Handler, middlewares ...Middleware) Router
+    Patch(path string, handler Handler, middlewares ...Middleware) Router
+    Head(path string, handler Handler, middlewares ...Middleware) Router
+    Options(path string, handler Handler, middlewares ...Middleware) Router
     ServeHTTP(ResponseWriter, *Request)
     Use(middleware Middleware) Router
-    UsePath(path string, middleware Middleware) Router
-    Listen(addr string) error
-    Shutdown() error
 }
 ```
 
@@ -107,33 +157,33 @@ Registers a handler for a specific HTTP method and path. Compiles regex patterns
 - `path` (string): URL path, can include dynamic parameters prefixed with `:` (e.g., "/users/:id")
 - `handler` (Handler): Handler to execute for matching requests
 
-#### `Get(path string, handler Handler) Router`
+#### `Get(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP GET requests to the specified path.
+Routes HTTP GET requests to the specified path. Returns the router for chaining.
 
-#### `Post(path string, handler Handler) Router`
+#### `Post(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP POST requests to the specified path.
+Routes HTTP POST requests to the specified path. Returns the router for chaining.
 
-#### `Put(path string, handler Handler) Router`
+#### `Put(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP PUT requests to the specified path.
+Routes HTTP PUT requests to the specified path. Returns the router for chaining.
 
-#### `Delete(path string, handler Handler) Router`
+#### `Delete(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP DELETE requests to the specified path.
+Routes HTTP DELETE requests to the specified path. Returns the router for chaining.
 
-#### `Patch(path string, handler Handler) Router`
+#### `Patch(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP PATCH requests to the specified path.
+Routes HTTP PATCH requests to the specified path. Returns the router for chaining.
 
-#### `Head(path string, handler Handler) Router`
+#### `Head(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP HEAD requests to the specified path.
+Routes HTTP HEAD requests to the specified path. Returns the router for chaining.
 
-#### `Options(path string, handler Handler) Router`
+#### `Options(path string, handler Handler, middlewares ...Middleware) Router`
 
-Routes HTTP OPTIONS requests to the specified path.
+Routes HTTP OPTIONS requests to the specified path. Returns the router for chaining.
 
 #### `ServeHTTP(w ResponseWriter, req *Request)`
 
@@ -141,28 +191,11 @@ Processes incoming HTTP requests. Matches requests to registered handlers using 
 
 #### `Use(middleware Middleware) Router`
 
-Adds middleware that applies to all routes on this router.
+Adds middleware that applies to all routes on this router. Returns the router for chaining.
 
 **Props:**
 
 - `middleware` (Middleware): Middleware function
-
-#### `UsePath(path string, middleware Middleware) Router`
-
-Adds middleware to a specific path only.
-
-**Props:**
-
-- `path` (string): The path to apply middleware to
-- `middleware` (Middleware): Middleware function
-
-#### `Listen(addr string) error` (Deprecated)
-
-**Note:** Router.Listen is deprecated. Use Server.Listen instead.
-
-#### `Shutdown() error`
-
-Gracefully shuts down the router.
 
 ---
 
