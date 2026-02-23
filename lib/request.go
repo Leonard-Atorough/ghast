@@ -85,7 +85,7 @@ func (r *Request) ContentType() string {
 //   - Add support for duplicate headers and query parameters.
 //   - Add validation for header names and values.
 //   - Add support for URL decoding of query parameters.
-func ParseRequest(rawRequest string) (*Request, error) {
+func parseRequest(rawRequest string) (*Request, error) {
 	lines := strings.Split(rawRequest, CRLF)
 
 	if len(lines) < 1 {

@@ -7,7 +7,7 @@ import (
 
 type testHandler struct{}
 
-func (h *testHandler) HandleRequest(w ResponseWriter, r *Request) {
+func (h *testHandler) handleRequest(w ResponseWriter, r *Request) {
 	// No-op handler for testing
 }
 

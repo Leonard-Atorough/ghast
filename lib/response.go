@@ -38,7 +38,7 @@ type responseWriter struct {
 }
 
 // NewResponseWriter creates a new ResponseWriter for the given connection.
-func NewResponseWriter(conn net.Conn) ResponseWriter {
+func newResponseWriter(conn net.Conn) ResponseWriter {
 	return &responseWriter{
 		conn:       conn,
 		headers:    make(map[string]string),

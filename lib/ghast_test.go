@@ -58,7 +58,7 @@ func TestRouterGet(t *testing.T) {
 	// Manually verify route was registered
 	// (This requires accessing private router struct - in real tests would use interface methods)
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/test", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -80,7 +80,7 @@ func TestRouterPost(t *testing.T) {
 	router.Post("/create", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "POST", Path: "/create", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -95,7 +95,7 @@ func TestRouter404(t *testing.T) {
 	router := NewRouter()
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/nonexistent", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -136,7 +136,7 @@ func TestMiddlewareChaining(t *testing.T) {
 	chainedHandler := middleware1(middleware2(handler))
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/", Headers: make(map[string]string)}
 
 	chainedHandler.ServeHTTP(rw, req)
@@ -200,7 +200,7 @@ func TestRequestJSON(t *testing.T) {
 // TestResponseJSON tests JSON marshaling and response
 func TestResponseJSON(t *testing.T) {
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 
 	testData := map[string]string{"message": "test"}
 	err := rw.JSON(200, testData)
@@ -223,7 +223,7 @@ func TestResponseJSON(t *testing.T) {
 // TestResponseChainingStatus tests that Status() returns the ResponseWriter for chaining
 func TestResponseStatus(t *testing.T) {
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 
 	rw.Status(201).SetHeader("X-Custom", "value")
 
@@ -242,7 +242,7 @@ func TestHandlerFunc(t *testing.T) {
 	})
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{}
 
 	hf.ServeHTTP(rw, req)

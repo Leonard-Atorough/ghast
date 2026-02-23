@@ -160,15 +160,6 @@ func (r *router) Use(middleware Middleware) Router {
 	return r
 }
 
-// Listen starts an HTTP server on the given address. This is a simplified implementation
-// for demonstration purposes. See the main.go for the full TCP server setup.
-// Deprecated: Server logic has been moved to server.go. This method is a placeholder and should not be used directly.
-func (r *router) Listen(addr string) error {
-	// Placeholder - actual implementation depends on embedding the server logic
-	// For now, this is handled in main.go
-	return nil
-}
-
 // extractRouteParams extracts parameter names from a path template.
 // Example: "/users/:id/posts/:postId" returns ["id", "postId"].
 func extractRouteParams(path string) []string {

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const Version = "0.1.0"
+const Version = "0.5.0"
 
 type Ghast struct {
 	config     *serverConfig
@@ -34,16 +34,10 @@ func New() *Ghast {
 	}
 }
 
-// NewRouter creates a new Router for grouping routes. Use this with Route() to mount the router under a specific prefix.
-// For example:
-//
-//	apiRouter := ghast.NewRouter()
-//	apiRouter.Get("/users", handler)
-//	app.Route("/api", apiRouter)
-//
-// The prefix is specified when calling Route(), not here.
-func (g *Ghast) NewRouter() Router {
-	return NewRouter()
+// Router returns the root Router instance for direct route registration. This allows you to register routes directly on the main router without needing to create sub-routers or groups.
+// In most cases, you can use the convenience methods on the Ghast struct (e.g., Get, Post) which internally register routes on the root router. However, if you need direct access to the Router interface for more advanced use cases (e.g., registering custom middleware, accessing route parameters), you can use this method to get the root router instance.
+func (g *Ghast) Router() Router {
+	return g.rootRouter
 }
 
 // Route allows you to mount an existing Router instance under a specific path prefix with optional middleware. This is useful for modularizing your application and reusing routers across different parts of your app or even across different projects.
@@ -126,7 +120,7 @@ func (g *Ghast) Listen(addr string) error {
 	return g.server.Listen(addr)
 }
 
-func (g *Ghast) HandleRequest(rw ResponseWriter, req *Request) {
+func (g *Ghast) handleRequest(rw ResponseWriter, req *Request) {
 	var prefixes []string
 	for _, rg := range g.routers {
 		prefixes = append(prefixes, rg.prefix)

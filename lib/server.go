@@ -43,7 +43,7 @@ type serverConfig struct {
 }
 
 type RequestHandler interface {
-	HandleRequest(ResponseWriter, *Request)
+	handleRequest(ResponseWriter, *Request)
 }
 
 // newServer creates a new server with a default root router and empty sub-router map.
@@ -130,7 +130,7 @@ func (s *server) handleConnection(conn net.Conn) {
 		}
 
 		// Parse the request
-		req, err := ParseRequest(strings.Join(headerLines, "\r\n"))
+		req, err := parseRequest(strings.Join(headerLines, "\r\n"))
 		if err != nil {
 			// TODO: Send proper error response to client
 			return
@@ -159,8 +159,8 @@ func (s *server) handleConnection(conn net.Conn) {
 		}
 
 		// Create response writer and serve the request through routing logic
-		rw := NewResponseWriter(conn)
-		s.requestHandler.HandleRequest(rw, req)
+		rw := newResponseWriter(conn)
+		s.requestHandler.handleRequest(rw, req)
 
 		// Check for connection keep-alive
 		if shouldKeepAlive(req) {

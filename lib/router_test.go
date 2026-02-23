@@ -17,7 +17,7 @@ func TestRouterExactPathMatching(t *testing.T) {
 	router.Get("/users", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/users", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -39,7 +39,7 @@ func TestRouterParameterizedPathMatching(t *testing.T) {
 	router.Get("/users/:id", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/users/123", Headers: make(map[string]string), Params: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -61,7 +61,7 @@ func TestRouterParameterExtraction(t *testing.T) {
 	router.Get("/users/:id", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/users/123", Headers: make(map[string]string), Params: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -87,7 +87,7 @@ func TestRouterMultipleParameters(t *testing.T) {
 	router.Get("/users/:userId/posts/:postId", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{
 		Method:  "GET",
 		Path:    "/users/456/posts/789",
@@ -128,7 +128,7 @@ func TestRouterParameterIsolation(t *testing.T) {
 
 	// First request to /users/:id route
 	mockConn1 := &MockConnection{}
-	rw1 := NewResponseWriter(mockConn1)
+	rw1 := newResponseWriter(mockConn1)
 	req1 := &Request{
 		Method:  "GET",
 		Path:    "/users/100",
@@ -139,7 +139,7 @@ func TestRouterParameterIsolation(t *testing.T) {
 
 	// Second request to /posts/:postId route
 	mockConn2 := &MockConnection{}
-	rw2 := NewResponseWriter(mockConn2)
+	rw2 := newResponseWriter(mockConn2)
 	req2 := &Request{
 		Method:  "GET",
 		Path:    "/posts/200",
@@ -162,7 +162,7 @@ func TestRouter404NotFound(t *testing.T) {
 	router := NewRouter()
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/nonexistent", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -191,7 +191,7 @@ func TestRouterExactPathPriority(t *testing.T) {
 	router.Get("/users/:id", paramHandler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/users/me", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -229,7 +229,7 @@ func TestRouterHTTPMethods(t *testing.T) {
 			tt.register(router, handler)
 
 			mockConn := &MockConnection{}
-			rw := NewResponseWriter(mockConn)
+			rw := newResponseWriter(mockConn)
 			req := &Request{Method: tt.method, Path: "/test", Headers: make(map[string]string)}
 
 			router.ServeHTTP(rw, req)
@@ -259,7 +259,7 @@ func TestRouterGlobalMiddleware(t *testing.T) {
 	router.Get("/test", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{Method: "GET", Path: "/test", Headers: make(map[string]string)}
 
 	router.ServeHTTP(rw, req)
@@ -291,13 +291,13 @@ func TestRouterPathSpecificMiddleware(t *testing.T) {
 
 	// Request to /users (should trigger middleware)
 	mockConn1 := &MockConnection{}
-	rw1 := NewResponseWriter(mockConn1)
+	rw1 := newResponseWriter(mockConn1)
 	req1 := &Request{Method: "GET", Path: "/users", Headers: make(map[string]string)}
 	router.ServeHTTP(rw1, req1)
 
 	// Request to /posts (should not trigger middleware)
 	mockConn2 := &MockConnection{}
-	rw2 := NewResponseWriter(mockConn2)
+	rw2 := newResponseWriter(mockConn2)
 	req2 := &Request{Method: "GET", Path: "/posts", Headers: make(map[string]string)}
 	router.ServeHTTP(rw2, req2)
 
@@ -318,7 +318,7 @@ func TestRouterParameterWithSpecialCharacters(t *testing.T) {
 	router.Get("/files/:file-id", handler)
 
 	mockConn := &MockConnection{}
-	rw := NewResponseWriter(mockConn)
+	rw := newResponseWriter(mockConn)
 	req := &Request{
 		Method:  "GET",
 		Path:    "/files/my-file-123",
