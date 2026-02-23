@@ -35,7 +35,7 @@ func (hb *HandlerBuilder) Build() Handler {
 }
 
 // ChainMiddleware applies a slice of middleware to a handler in order.
-func ChainMiddleware(handler Handler, middlewares []Middleware) Handler {
+func chainMiddleware(handler Handler, middlewares []Middleware) Handler {
 	for _, middleware := range middlewares {
 		handler = middleware(handler)
 	}

@@ -67,7 +67,7 @@ func (r *router) Handle(method string, path string, handler Handler, middlewares
 	middlewareCollection = append(middlewareCollection, middlewares...)
 
 	// Apply middleware to the handler.
-	handler = ChainMiddleware(handler, middlewareCollection)
+	handler = chainMiddleware(handler, middlewareCollection)
 
 	// Register the handler for the specified method and path.
 	if r.routes[method] == nil {

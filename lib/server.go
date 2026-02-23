@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sort"
 	"strings"
 )
 
-// Server represents an HTTP server that uses a Router to handle requests.
+// server represents an HTTP server that uses a Router to handle requests.
 // It manages TCP listening, connection handling, request parsing, and routing across multiple routers.
-// The Server includes a root router for direct route registration and supports sub-routers with path prefixes.
-type Server struct {
-	rootRouter  Router            // Default router for root-level routes
-	routers     map[string]Router // Map of path prefixes to sub-routers (e.g., "/api" -> apiRouter)
-	middlewares []Middleware      // Server-level middleware (applied to all routers)
-	addr        string
-	listener    net.Listener // TODO: Add listener for graceful shutdown
-	isDone      bool         // TODO: Add shutdown signal
+// The server includes a root router for direct route registration and supports sub-routers with path prefixes.
+type server struct {
+	addr     string
+	listener net.Listener // TODO: Add listener for graceful shutdown
+	isDone   bool         // TODO: Add shutdown signal
+
+	config *serverConfig // TODO: Add server configuration options (timeouts, max connections, etc.)
+
+	requestHandler RequestHandler // Core request handling function that processes incoming requests and routes them
 
 	// TODO: Add fields for future improvements:
 	// - listener net.Listener (for graceful shutdown)
@@ -27,109 +27,45 @@ type Server struct {
 	// - config ServerConfig (timeouts, max connections, etc.)
 }
 
-// ServerConfig holds configuration options for the server.
+// serverConfig holds configuration options for the server.
 // TODO: Implement and use this for:
 // - ReadTimeout / WriteTimeout
 // - MaxConnections / MaxRequestBodySize
 // - TLS/HTTPS support
 // - Custom error handlers
 // - Access logging configuration
-type ServerConfig struct {
+type serverConfig struct {
 	// Placeholder for future configuration
+	Address                 string      // Server listen address (e.g., ":8080")
+	HidePort                bool        // Option to hide port in logs or responses
+	GracefulShutdownTimeout int         // Timeout in seconds for graceful shutdown
+	OnShutdownError         func(error) // Optional callback for shutdown errors
 }
 
-type RouterPath struct {
-	Path   string
-	Router Router
+type RequestHandler interface {
+	HandleRequest(ResponseWriter, *Request)
 }
 
-// NewServer creates a new Server with a default root router and empty sub-router map.
-func NewServer() *Server {
-	return &Server{
-		rootRouter: NewRouter(),
-		routers:    make(map[string]Router),
+// newServer creates a new server with a default root router and empty sub-router map.
+func newServer(handler RequestHandler, config *serverConfig) *server {
+	if config == nil {
+		config = &serverConfig{
+			Address:                 ":8080",
+			HidePort:                false,
+			GracefulShutdownTimeout: 30,
+			OnShutdownError: func(err error) {
+				log.Printf("Error during shutdown: %v", err)
+			},
+		}
 	}
-}
-
-// NewRouter creates a new Router and registers it at the specified path prefix.
-// Returns the new Router for chaining route registrations.
-func (s *Server) NewRouter(prefix string) Router {
-	if prefix == "" || prefix == "/" {
-		log.Printf("Warning: Use the server's direct Http methods for root routes, not NewRouter")
-		prefix = "/"
+	return &server{
+		config:         config,
+		requestHandler: handler,
 	}
-	newRouter := NewRouter()
-	s.registerRouter(RouterPath{Path: prefix, Router: newRouter})
-	return newRouter
-}
-
-// registerRouter adds a Router to the server with an optional path prefix.
-// If the path prefix is empty, it defaults to "/". Routers are matched based on longest prefix first.
-// Returns the server instance for chaining.
-func (s *Server) registerRouter(rp RouterPath) *Server {
-	if _, exists := s.routers[rp.Path]; exists {
-		log.Printf("Warning: Router for path %s already exists. Overwriting.", rp.Path)
-	}
-	if rp.Path == "" {
-		rp.Path = "/" // Default to root if empty
-	}
-	s.routers[rp.Path] = rp.Router
-	return s
-}
-
-// HTTP verb methods - delegate to root router for convenience
-
-// Get registers a GET handler on the root router. Returns the server for chaining.
-func (s *Server) Get(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Get(path, handler, middlewares...)
-	return s
-}
-
-// Post registers a POST handler on the root router. Returns the server for chaining.
-func (s *Server) Post(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Post(path, handler, middlewares...)
-	return s
-}
-
-// Put registers a PUT handler on the root router. Returns the server for chaining.
-func (s *Server) Put(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Put(path, handler, middlewares...)
-	return s
-}
-
-// Delete registers a DELETE handler on the root router. Returns the server for chaining.
-func (s *Server) Delete(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Delete(path, handler, middlewares...)
-	return s
-}
-
-// Patch registers a PATCH handler on the root router. Returns the server for chaining.
-func (s *Server) Patch(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Patch(path, handler, middlewares...)
-	return s
-}
-
-// Head registers a HEAD handler on the root router. Returns the server for chaining.
-func (s *Server) Head(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Head(path, handler, middlewares...)
-	return s
-}
-
-// Options registers an OPTIONS handler on the root router. Returns the server for chaining.
-func (s *Server) Options(path string, handler Handler, middlewares ...Middleware) *Server {
-	s.rootRouter.Options(path, handler, middlewares...)
-	return s
-}
-
-// Use adds middleware to the server. Server-level middleware is applied to all routes across all routers.
-// Returns the server for chaining.
-func (s *Server) Use(middleware Middleware) *Server {
-	s.middlewares = append(s.middlewares, middleware)
-	return s
 }
 
 // Listen starts the HTTP server on the given address (e.g., ":8080").
-func (s *Server) Listen(addr string) error {
+func (s *server) Listen(addr string) error {
 	s.addr = addr
 
 	ln, err := net.Listen("tcp", addr)
@@ -163,14 +99,14 @@ func (s *Server) Listen(addr string) error {
 // - Wait for existing requests to complete
 // - Close the listener
 // - Return after all connections are closed
-func (s *Server) Shutdown() error {
+func (s *server) Shutdown() error {
 	// Placeholder for graceful shutdown implementation
 	return nil
 }
 
-// handleConnection processes a single TCP connection and its HTTP requests.
-// It reads requests, parses them, and routes them to appropriate handlers.
-func (s *Server) handleConnection(conn net.Conn) {
+// handleConnection processes a single TCP connection and handles HTTP requests.
+// It focuses purely on TCP connection I/O: reading request headers/body, parsing, and extracting metadata.
+func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -212,66 +148,36 @@ func (s *Server) handleConnection(conn net.Conn) {
 			}
 		}
 
-		// Very basic client IP extraction for potential logging or middleware use. In a real implementation, this should be more robust and handle cases like proxies
-		// and X-Forwarded-For headers.
-		// See echo's ip.go for a more robust implementation: https://github.com/labstack/echo/blob/master/ip.go
+		// Extract client IP for logging or middleware use.
+		// Very basic implementation - in production, handle proxies and X-Forwarded-For headers.
+		// See echo's ip.go for reference: https://github.com/labstack/echo/blob/master/ip.go
 		host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 		if err != nil {
 			req.ClientIP = conn.RemoteAddr().String() // Fallback to full address if splitting fails
 		} else {
-			req.ClientIP = host // Populate client IP for potential logging or middleware use
+			req.ClientIP = host // Populate client IP for logging or middleware use
 		}
 
-		// Process the request through the router
+		// Create response writer and serve the request through routing logic
 		rw := NewResponseWriter(conn)
+		s.requestHandler.HandleRequest(rw, req)
 
-		// Determine the appropriate router to use based on request path.
-		// Sort prefixes by length (longest first) to ensure more specific paths are matched first.
-		var prefixes []string
-		for prefix := range s.routers {
-			prefixes = append(prefixes, prefix)
-		}
-		sort.Slice(prefixes, func(i, j int) bool {
-			return len(prefixes[i]) > len(prefixes[j])
-		})
-
-		var matchedRouter Router = nil
-		var matchedPrefix string
-		for _, prefix := range prefixes {
-
-			if strings.HasPrefix(req.Path, prefix) && (prefix == "/" || len(req.Path) == len(prefix) || req.Path[len(prefix)] == '/') {
-				matchedRouter = s.routers[prefix]
-				matchedPrefix = prefix
-				break
-			}
-		}
-
-		if matchedRouter != nil {
-			// Strip the prefix from the path before passing to the router
-			originalPath := req.Path
-			if matchedPrefix != "/" {
-				req.Path = strings.TrimPrefix(req.Path, matchedPrefix)
-				if req.Path == "" {
-					req.Path = "/"
-				}
-			}
-
-			routerWithMiddleware := ChainMiddleware(matchedRouter, s.middlewares)
-
-			routerWithMiddleware.ServeHTTP(rw, req)
-
-			req.Path = originalPath // Restore original path for logging or debugging
+		// Check for connection keep-alive
+		if shouldKeepAlive(req) {
+			continue
 		} else {
-			// Try the root router if no prefix matched
-			routerWithMiddleware := ChainMiddleware(s.rootRouter, s.middlewares)
-			routerWithMiddleware.ServeHTTP(rw, req)
-			s.isDone = true // TODO: Implement proper shutdown signaling
 			return
 		}
 
 		// TODO: Add request timeout handling
 		// TODO: Add support for HTTP/1.1 100 Continue
 	}
+}
+
+// shouldKeepAlive checks the Connection header to determine if the connection should be kept alive.
+func shouldKeepAlive(req *Request) bool {
+	connHeader := req.Headers["Connection"]
+	return strings.EqualFold(connHeader, "keep-alive")
 }
 
 // Note: Request parsing (headers, query params, etc.) is delegated to ParseRequest()
